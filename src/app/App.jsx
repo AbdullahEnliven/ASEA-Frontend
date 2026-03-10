@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { Spinner } from '@/components/common';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Spinner, ErrorBoundary } from '@/components/common';
 import CommandPalette from '@/components/common/CommandPalette';
 import PublicLayout from '@/components/layout/PublicLayout';
 import AppShell from '@/components/layout/AppShell';
@@ -21,6 +22,26 @@ const ProjectSettingsPage = lazy(() => import('@/pages/ProjectSettingsPage'));
 const AccountPage = lazy(() => import('@/pages/AccountPage'));
 const BillingPage = lazy(() => import('@/pages/BillingPage'));
 
+const pageVariants = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, y: -6, transition: { duration: 0.18 } },
+};
+
+function PageTransition({ children }) {
+  return (
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      style={{ minHeight: '100%' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 function Loading() {
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -30,9 +51,9 @@ function Loading() {
 }
 
 export default function App() {
+  const location = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  // Global Cmd+K / Ctrl+K listener
   useEffect(() => {
     const handler = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -45,49 +66,51 @@ export default function App() {
   }, []);
 
   return (
-    <>
+    <ErrorBoundary>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <Suspense fallback={<Loading />}>
-        <Routes>
-          {/* Public routes */}
-          <Route element={<PublicLayout />}>
-            <Route path="/" element={<LandingPage />} />
-          </Route>
+        <AnimatePresence mode="wait" initial={false}>
+          <Routes location={location} key={location.pathname}>
+            {/* Public routes */}
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
+            </Route>
 
-          {/* Auth routes (no layout shell) */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+            {/* Auth routes */}
+            <Route path="/login" element={<PageTransition><LoginPage /></PageTransition>} />
+            <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
+            <Route path="/forgot-password" element={<PageTransition><ForgotPasswordPage /></PageTransition>} />
+            <Route path="/reset-password" element={<PageTransition><ResetPasswordPage /></PageTransition>} />
 
-          {/* Protected routes with AppShell */}
-          <Route
-            element={
-              <ProtectedRoute>
-                <AppShell />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/projects/new" element={<NewProjectPage />} />
-            <Route path="/projects/:id/code" element={<CodeViewerPage />} />
-            <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />
-            <Route path="/projects/:id/deploy" element={<DeployPage />} />
-            <Route path="/account" element={<AccountPage />} />
-            <Route path="/account/billing" element={<BillingPage />} />
-          </Route>
+            {/* Protected routes with AppShell */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AppShell />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/dashboard" element={<PageTransition><DashboardPage /></PageTransition>} />
+              <Route path="/projects/new" element={<PageTransition><NewProjectPage /></PageTransition>} />
+              <Route path="/projects/:id/code" element={<PageTransition><CodeViewerPage /></PageTransition>} />
+              <Route path="/projects/:id/settings" element={<PageTransition><ProjectSettingsPage /></PageTransition>} />
+              <Route path="/projects/:id/deploy" element={<PageTransition><DeployPage /></PageTransition>} />
+              <Route path="/account" element={<PageTransition><AccountPage /></PageTransition>} />
+              <Route path="/account/billing" element={<PageTransition><BillingPage /></PageTransition>} />
+            </Route>
 
-          {/* Builder — full screen, no AppShell sidebar */}
-          <Route
-            path="/projects/:id"
-            element={
-              <ProtectedRoute>
-                <BuilderPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+            {/* Builder — full screen */}
+            <Route
+              path="/projects/:id"
+              element={
+                <ProtectedRoute>
+                  <BuilderPage />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </AnimatePresence>
       </Suspense>
-    </>
+    </ErrorBoundary>
   );
 }
