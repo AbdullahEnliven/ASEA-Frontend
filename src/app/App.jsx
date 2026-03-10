@@ -1,6 +1,7 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Spinner } from '@/components/common';
+import CommandPalette from '@/components/common/CommandPalette';
 import PublicLayout from '@/components/layout/PublicLayout';
 import AppShell from '@/components/layout/AppShell';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -14,6 +15,7 @@ const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
 const NewProjectPage = lazy(() => import('@/pages/NewProjectPage'));
 const BuilderPage = lazy(() => import('@/pages/BuilderPage'));
+const CodeViewerPage = lazy(() => import('@/pages/CodeViewerPage'));
 const DeployPage = lazy(() => import('@/pages/DeployPage'));
 const ProjectSettingsPage = lazy(() => import('@/pages/ProjectSettingsPage'));
 const AccountPage = lazy(() => import('@/pages/AccountPage'));
@@ -28,46 +30,64 @@ function Loading() {
 }
 
 export default function App() {
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // Global Cmd+K / Ctrl+K listener
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   return (
-    <Suspense fallback={<Loading />}>
-      <Routes>
-        {/* Public routes */}
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<LandingPage />} />
-        </Route>
+    <>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          {/* Public routes */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<LandingPage />} />
+          </Route>
 
-        {/* Auth routes (no layout shell) */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+          {/* Auth routes (no layout shell) */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* Protected routes with AppShell */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <AppShell />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/projects/new" element={<NewProjectPage />} />
-          <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />
-          <Route path="/projects/:id/deploy" element={<DeployPage />} />
-          <Route path="/account" element={<AccountPage />} />
-          <Route path="/account/billing" element={<BillingPage />} />
-        </Route>
+          {/* Protected routes with AppShell */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppShell />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/projects/new" element={<NewProjectPage />} />
+            <Route path="/projects/:id/code" element={<CodeViewerPage />} />
+            <Route path="/projects/:id/settings" element={<ProjectSettingsPage />} />
+            <Route path="/projects/:id/deploy" element={<DeployPage />} />
+            <Route path="/account" element={<AccountPage />} />
+            <Route path="/account/billing" element={<BillingPage />} />
+          </Route>
 
-        {/* Builder — full screen, no AppShell sidebar */}
-        <Route
-          path="/projects/:id"
-          element={
-            <ProtectedRoute>
-              <BuilderPage />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </Suspense>
+          {/* Builder — full screen, no AppShell sidebar */}
+          <Route
+            path="/projects/:id"
+            element={
+              <ProtectedRoute>
+                <BuilderPage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Suspense>
+    </>
   );
 }

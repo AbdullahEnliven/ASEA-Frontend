@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import {
   Monitor,
   Tablet,
@@ -15,12 +15,19 @@ import {
   FolderTree,
   Image,
   Loader2,
+  Copy,
+  Download,
 } from 'lucide-react';
+import Editor from '@monaco-editor/react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TipTapLink from '@tiptap/extension-link';
 import useBuilderStore from '@/store/builder.store';
 import useProjectsStore from '@/store/projects.store';
 import { projectsService } from '@/services/projects.service';
 import { DEVICE_WIDTHS } from '@/constants';
 import { Button } from '@/components/common';
+import toast from 'react-hot-toast';
 
 // ─── Toolbar ──────────────────────────────────────────
 function BuilderToolbar() {
@@ -196,28 +203,174 @@ function BuilderSidebar() {
   );
 }
 
+// ─── Inline Editor Overlay (Tiptap) ──────────────────
+function InlineEditor({ activeEdit, onClose, onSave }) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TipTapLink.configure({ openOnClick: false }),
+    ],
+    content: activeEdit?.text || '',
+    onUpdate: ({ editor: e }) => {
+      activeEdit.pendingHtml = e.getHTML();
+    },
+  });
+
+  const handleSave = () => {
+    if (editor) {
+      onSave(activeEdit.editableId, editor.getHTML());
+    }
+    onClose();
+  };
+
+  if (!activeEdit) return null;
+
+  const { absoluteRect } = activeEdit;
+
+  return (
+    <div
+      className="fixed z-50 shadow-2xl rounded-xl border border-blue-500/40 bg-[#0e0e0e] overflow-hidden"
+      style={{
+        top: absoluteRect.top,
+        left: absoluteRect.left,
+        width: Math.max(absoluteRect.width, 300),
+        minHeight: absoluteRect.height || 40,
+      }}
+    >
+      {/* Tiptap toolbar */}
+      <div className="flex items-center gap-1 px-2 py-1 border-b border-white/10 bg-[#111]">
+        {[
+          { label: 'B', action: () => editor?.chain().focus().toggleBold().run(), active: editor?.isActive('bold') },
+          { label: 'I', action: () => editor?.chain().focus().toggleItalic().run(), active: editor?.isActive('italic') },
+        ].map(({ label, action, active }) => (
+          <button
+            key={label}
+            onMouseDown={(e) => { e.preventDefault(); action(); }}
+            className={`px-2 py-0.5 rounded text-xs font-medium transition-colors
+              ${active ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:text-white'}`}
+          >
+            {label}
+          </button>
+        ))}
+        <div className="ml-auto flex gap-1">
+          <button onClick={onClose} className="px-2 py-0.5 text-xs text-gray-500 hover:text-white rounded">
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-2 py-0.5 text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded font-medium"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+      <div className="p-2 [&_.ProseMirror]:outline-none [&_.ProseMirror]:text-white [&_.ProseMirror]:min-h-[28px] [&_.ProseMirror]:px-1">
+        <EditorContent editor={editor} />
+      </div>
+    </div>
+  );
+}
+
 // ─── Live Preview ─────────────────────────────────────
 function LivePreview() {
   const { deviceMode, activePage, editMode } = useBuilderStore();
   const activeProject = useProjectsStore((s) => s.activeProject);
+  const iframeRef = useRef(null);
   const [html, setHtml] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [activeEdit, setActiveEdit] = useState(null);
+  const debounceRef = useRef(null);
+  const refreshRef = useRef(null);
 
-  useEffect(() => {
+  const getEditableHtml = useCallback(
+    (rawHtml) => {
+      if (!editMode) return rawHtml;
+      const script = `<script>
+        document.addEventListener('click', function(e) {
+          var t = e.target.closest('[data-editable-id]');
+          if (!t) { parent.postMessage({ type:'asea:deselect' }, '*'); return; }
+          e.preventDefault();
+          var r = t.getBoundingClientRect();
+          parent.postMessage({ type:'asea:click', editableId:t.dataset.editableId, text:t.innerHTML,
+            rect:{top:r.top,left:r.left,width:r.width,height:r.height} }, '*');
+        });
+        document.addEventListener('mouseover', function(e) {
+          var t = e.target.closest('[data-editable-id]');
+          if (t) { t.style.outline='2px solid rgba(59,130,246,0.6)'; t.style.cursor='text'; }
+        });
+        document.addEventListener('mouseout', function(e) {
+          var t = e.target.closest('[data-editable-id]');
+          if (t) { t.style.outline=''; t.style.cursor=''; }
+        });
+      <\/script>`;
+      return rawHtml.replace(/<\/body>/i, script + '</body>') || rawHtml + script;
+    },
+    [editMode]
+  );
+
+  const loadPreview = useCallback(() => {
     if (!activeProject?.id) return;
     setLoading(true);
     setError(null);
     projectsService
       .getPreview(activeProject.id, activePage)
-      .then((res) => setHtml(res.data.html || res.data))
+      .then((res) => {
+        const raw = typeof res.data === 'string' ? res.data : res.data.html || '';
+        setHtml(raw);
+      })
       .catch(() => setError('Failed to load preview'))
       .finally(() => setLoading(false));
   }, [activeProject?.id, activePage]);
 
+  useEffect(() => { loadPreview(); }, [loadPreview]);
+
+  // Listen to postMessages from iframe
+  useEffect(() => {
+    const handleMessage = (e) => {
+      if (e.data?.type === 'asea:click') {
+        const iframeRect = iframeRef.current?.getBoundingClientRect();
+        if (!iframeRect) return;
+        setActiveEdit({
+          editableId: e.data.editableId,
+          text: e.data.text,
+          pendingHtml: e.data.text,
+          absoluteRect: {
+            top: iframeRect.top + e.data.rect.top,
+            left: iframeRect.left + e.data.rect.left,
+            width: e.data.rect.width,
+            height: e.data.rect.height,
+          },
+        });
+      } else if (e.data?.type === 'asea:deselect') {
+        setActiveEdit(null);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const saveEdit = useCallback(
+    (editableId, newHtml) => {
+      if (!activeProject?.id) return;
+      clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        try {
+          await projectsService.updateFile(activeProject.id, editableId, newHtml);
+          // Debounced refresh
+          clearTimeout(refreshRef.current);
+          refreshRef.current = setTimeout(() => loadPreview(), 500);
+        } catch {
+          toast.error('Failed to save change');
+        }
+      }, 300);
+    },
+    [activeProject?.id, loadPreview]
+  );
+
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center bg-[#111]">
         <Loader2 size={24} className="animate-spin text-blue-500" />
       </div>
     );
@@ -225,50 +378,183 @@ function LivePreview() {
 
   if (error) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center">
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#111] text-center">
         <p className="text-sm text-red-400 mb-3">{error}</p>
-        <Button variant="secondary" size="sm" onClick={() => setError(null)}>
-          Retry
-        </Button>
+        <Button variant="secondary" size="sm" onClick={loadPreview}>Retry</Button>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex items-start justify-center overflow-auto bg-[#111] p-4">
+    <div className="flex-1 flex items-start justify-center overflow-auto bg-[#111] p-4 relative">
       <div
         className="bg-white rounded-lg shadow-2xl overflow-hidden transition-all duration-300"
-        style={{
-          width: DEVICE_WIDTHS[deviceMode],
-          minHeight: '600px',
-          maxWidth: '100%',
-        }}
+        style={{ width: DEVICE_WIDTHS[deviceMode], minHeight: '600px', maxWidth: '100%' }}
       >
         {html ? (
           <iframe
-            srcDoc={html}
+            ref={iframeRef}
+            srcDoc={getEditableHtml(html)}
             title="Store Preview"
-            className="w-full h-full min-h-[600px] border-0"
+            className="w-full min-h-[600px] border-0"
+            style={{ height: '100%', minHeight: '600px' }}
             sandbox="allow-scripts allow-same-origin"
           />
         ) : (
-          <div className="flex items-center justify-center h-full min-h-[600px] text-gray-400 text-sm">
+          <div className="flex items-center justify-center min-h-[600px] text-gray-400 text-sm">
             No preview available. Generate a store first.
           </div>
         )}
       </div>
+
+      {/* Inline editor overlay */}
+      {editMode && activeEdit && (
+        <InlineEditor
+          activeEdit={activeEdit}
+          onClose={() => setActiveEdit(null)}
+          onSave={saveEdit}
+        />
+      )}
     </div>
   );
 }
 
-// ─── Code Viewer (placeholder for Monaco) ─────────────
-function CodeViewer() {
+// ─── Monaco Code Viewer ────────────────────────────────
+function CodeViewerPane() {
+  const activeProject = useProjectsStore((s) => s.activeProject);
+  const [files, setFiles] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileContent, setFileContent] = useState('');
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [readOnly, setReadOnly] = useState(true);
+
+  useEffect(() => {
+    if (!activeProject?.id) return;
+    projectsService
+      .getFiles(activeProject.id)
+      .then((res) => {
+        const fileList = res.data.files || res.data || [];
+        setFiles(fileList);
+        if (fileList.length > 0) selectFile(fileList[0]);
+      })
+      .catch(() => {});
+  }, [activeProject?.id]);
+
+  const selectFile = async (file) => {
+    setSelectedFile(file);
+    setLoadingContent(true);
+    try {
+      const res = await projectsService.getFile(activeProject.id, file.id);
+      setFileContent(res.data.content || '');
+    } catch {
+      setFileContent('// Could not load file content');
+    } finally {
+      setLoadingContent(false);
+    }
+  };
+
+  const getLanguage = (filename = '') => {
+    if (filename.endsWith('.jsx') || filename.endsWith('.js')) return 'javascript';
+    if (filename.endsWith('.py')) return 'python';
+    if (filename.endsWith('.sql')) return 'sql';
+    if (filename.endsWith('.json')) return 'json';
+    if (filename.endsWith('.css')) return 'css';
+    if (filename.endsWith('.html')) return 'html';
+    if (filename.endsWith('.md')) return 'markdown';
+    return 'plaintext';
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(fileContent);
+    toast.success('Copied to clipboard');
+  };
+
+  const handleDownloandFile = () => {
+    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = selectedFile?.name || 'file.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="flex-1 flex items-center justify-center text-gray-500 text-sm bg-[#111]">
-      <div className="text-center">
-        <Code2 size={32} className="mx-auto mb-3 text-gray-600" />
-        <p>Code viewer will load here.</p>
-        <p className="text-xs text-gray-600 mt-1">Monaco Editor integration</p>
+    <div className="flex-1 flex overflow-hidden bg-[#111]">
+      {/* File tree */}
+      <div className="w-52 border-r border-white/10 overflow-y-auto py-2">
+        {files.length === 0 ? (
+          <p className="text-xs text-gray-500 px-4 py-2">No files yet</p>
+        ) : (
+          files.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => selectFile(f)}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left truncate transition-colors
+                ${selectedFile?.id === f.id
+                  ? 'bg-white/10 text-white'
+                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                }`}
+            >
+              <FileText size={12} />
+              {f.name}
+            </button>
+          ))
+        )}
+      </div>
+
+      {/* Editor area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {selectedFile && (
+          <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-[#0e0e0e]">
+            <div className="flex items-center gap-1 text-xs text-gray-400">
+              <span>{selectedFile.path || selectedFile.name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setReadOnly(!readOnly)}
+                className={`px-2 py-1 rounded text-xs font-medium border transition-colors
+                  ${readOnly
+                    ? 'border-white/10 text-gray-500 hover:text-white'
+                    : 'border-blue-500/40 text-blue-400 bg-blue-500/10'
+                  }`}
+              >
+                {readOnly ? 'Read only' : 'Editing'}
+              </button>
+              <button onClick={handleCopy} className="p-1.5 text-gray-500 hover:text-white">
+                <Copy size={13} />
+              </button>
+              <button onClick={handleDownloandFile} className="p-1.5 text-gray-500 hover:text-white">
+                <Download size={13} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loadingContent ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 size={20} className="animate-spin text-blue-500" />
+          </div>
+        ) : (
+          <Editor
+            height="100%"
+            language={getLanguage(selectedFile?.name)}
+            value={fileContent}
+            onChange={(val) => !readOnly && setFileContent(val || '')}
+            theme="vs-dark"
+            options={{
+              readOnly,
+              fontSize: 13,
+              lineNumbers: 'on',
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              wordWrap: 'on',
+              tabSize: 2,
+              renderLineHighlight: 'gutter',
+              padding: { top: 12, bottom: 12 },
+            }}
+          />
+        )}
       </div>
     </div>
   );
@@ -295,7 +581,7 @@ export default function BuilderPage() {
       <BuilderToolbar />
       <div className="flex flex-1 overflow-hidden">
         <BuilderSidebar />
-        {viewMode === 'preview' ? <LivePreview /> : <CodeViewer />}
+        {viewMode === 'preview' ? <LivePreview /> : <CodeViewerPane />}
       </div>
     </div>
   );
