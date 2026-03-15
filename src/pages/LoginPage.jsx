@@ -35,7 +35,11 @@ export default function LoginPage() {
       toast.success('Welcome back!');
       navigate(from, { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      const detail = err.response?.data?.detail;
+      let msg = 'Login failed';
+      if (typeof detail === 'string') msg = detail;
+      else if (Array.isArray(detail)) msg = detail.map(d => d.msg).join(', ');
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

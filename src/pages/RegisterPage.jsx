@@ -62,7 +62,11 @@ export default function RegisterPage() {
       toast.success('Account created! Welcome to ASEA.');
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed');
+      const detail = err.response?.data?.detail;
+      let msg = 'Registration failed';
+      if (typeof detail === 'string') msg = detail;
+      else if (Array.isArray(detail)) msg = detail.map(d => d.msg).join(', ');
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
