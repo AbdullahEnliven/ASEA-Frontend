@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Download, Database, Github, Check, X, Loader2, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button, Input } from '@/components/common';
@@ -52,6 +52,34 @@ function SupabaseTab({ projectId }) {
   const [testing, setTesting] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadStatus = async () => {
+      try {
+        const res = await integrationsService.getSupabaseStatus(projectId);
+        if (!isMounted) {
+          return;
+        }
+
+        if (res.data?.connected) {
+          setConnected(true);
+          setStep(2);
+          if (res.data.url) {
+            setCredentials((prev) => ({ ...prev, url: res.data.url }));
+          }
+        }
+      } catch {
+        // Keep the tab interactive even if status lookup fails.
+      }
+    };
+
+    loadStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, [projectId]);
 
   const testConnection = async () => {
     setTesting(true);
@@ -253,7 +281,9 @@ function GithubTab({ projectId }) {
 // ─── Deploy Page ──────────────────────────────────────
 export default function DeployPage() {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState('download');
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(initialTab || 'download');
 
   const tabs = [
     { id: 'download', label: 'Download', icon: Download },

@@ -7,6 +7,7 @@ import { STORE_CATEGORIES } from '@/constants';
 import useGenerationStore from '@/store/generation.store';
 import useProjectsStore from '@/store/projects.store';
 import { projectsService } from '@/services/projects.service';
+import { integrationsService } from '@/services/integrations.service';
 import useGenerationSocket from '@/hooks/useGenerationSocket';
 
 // ─── Step 1: Requirement Input ────────────────────────
@@ -128,6 +129,9 @@ function SpecReviewStep({ spec, onBack, onGenerate, loading }) {
       <h2 className="text-2xl font-bold mb-2">Review Specification</h2>
       <p className="text-gray-400 text-sm mb-8">
         The AI has generated a spec for your store. Review and adjust before generating.
+      </p>
+      <p className="text-amber-300/90 text-sm mb-6 rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3">
+        Supabase connection is required before generation. You will be redirected to connect if it is missing.
       </p>
 
       <div className="space-y-4">
@@ -284,11 +288,19 @@ export default function NewProjectPage() {
   const handleGenerate = async () => {
     setLoading(true);
     try {
+      const supabaseStatus = await integrationsService.getSupabaseStatus(projectId);
+      if (!supabaseStatus.data?.connected) {
+        toast.error('Connect your Supabase project before generation');
+        navigate(`/projects/${projectId}/deploy?tab=supabase`);
+        return;
+      }
+
       generationReset();
       await projectsService.startGeneration(projectId);
       setStep(3);
-    } catch {
-      toast.error('Failed to start generation');
+    } catch (error) {
+      const message = error?.response?.data?.detail;
+      toast.error(message || 'Failed to start generation');
     } finally {
       setLoading(false);
     }

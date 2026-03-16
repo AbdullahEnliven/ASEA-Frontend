@@ -2,6 +2,9 @@ import api from './api';
 
 export const integrationsService = {
   // Supabase
+  getSupabaseStatus: (projectId) =>
+    api.get(`/projects/${encodeURIComponent(projectId)}/integrations/supabase/status`),
+
   testSupabaseConnection: (projectId, credentials) =>
     api.post(`/projects/${encodeURIComponent(projectId)}/integrations/supabase/test`, credentials),
 

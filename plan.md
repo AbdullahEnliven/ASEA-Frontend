@@ -31,11 +31,12 @@ Depends on Phase 2
 Dashboard page — Stats bar (projects, stores live, storage), "New Project" CTA, projects grid/list toggle, empty state with illustration
 ProjectCard component — name, date, status badge, thumbnail, quick actions (Open Builder, Download, Delete)
 projects.service.js — list, create, delete, get project API calls (TanStack Query hooks)
-Phase 4 — New Project Wizard
+Phase 4 — New Project Wizard (Supabase-first)
 Depends on Phase 3
 
 Step 1 — RequirementInput — large textarea with placeholder examples, "Enhance with AI" button, category quick-select pills, collapsible optional fields (color palette, store name, target market, languages)
 Step 2 — SpecificationReview — structured spec cards with inline-editable fields, "Regenerate Spec" + "Generate Store" CTAs
+Step 2.5 — Supabase Gate — before generation starts, check `/projects/:id/integrations/supabase/status`; if not connected, redirect to Deploy → Supabase tab
 Step 3 — GenerationProgress — useGenerationSocket.js hook, animated progress bar, terminal-style scrollable log, step indicators, auto-redirect on generation:complete
 Phase 5 — Builder Page (Core Feature)
 Depends on Phase 4
@@ -54,7 +55,7 @@ Parallel with Phase 5 polish
 Code Viewer — Monaco Editor, read-only + editable toggle, file tree navigation, JSX/Python/SQL/JSON syntax highlighting, cross-file search, copy/download per file
 Deploy page — 3 tabs:
 Download: ZIP with README + .env.example
-Supabase Connect: guided flow → test connection → run migrations → seed toggle
+Supabase Connect (required before generation): guided flow → test connection → run migrations → seed toggle
 GitHub Push: OAuth connect, repo name/visibility/org/branch/commit inputs, real-time push progress, success link
 integrations.service.js — Supabase connection test, migration runner, GitHub OAuth + push
 Phase 7 — Account, Notifications & Billing
