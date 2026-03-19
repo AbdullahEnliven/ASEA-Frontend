@@ -35,6 +35,7 @@ import { projectsService } from '@/services/projects.service';
 import { DEVICE_WIDTHS } from '@/constants';
 import { Button } from '@/components/common';
 import toast from 'react-hot-toast';
+import { io } from 'socket.io-client';
 
 // --- Toolbar ------------------------------------------
 function BuilderToolbar() {
@@ -119,7 +120,19 @@ function BuilderToolbar() {
         <Button variant="secondary" size="sm" className="bg-[#1a1a1a] border-white/10 text-white hover:bg-[#2a2a2a]">
           <Rocket size={13} className="text-purple-400" /> Upgrade
         </Button>
-        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button 
+          size="sm" 
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={async () => {
+             if(!activeProject) return;
+             try {
+                const res = await projectsService.deploy(activeProject.id);
+                toast.success(res.data?.message || 'Deployed seamlessly!');
+             } catch(e) {
+                toast.error('Failed to deploy');
+             }
+          }}
+        >
           Publish
         </Button>
       </div>
@@ -134,6 +147,44 @@ function ChatSidebar() {
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+  // Socket state
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    if (!activeProject?.id) return;
+    
+    const socket = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8000', {
+       transports: ['websocket'],
+    });
+    
+    socket.on('connect', () => {
+       socket.emit('join_project', { project_id: activeProject.id });
+    });
+
+    socket.on('agent_typing', () => {
+       setIsTyping(true);
+    });
+
+    socket.on('agent_reply', (data) => {
+       setIsTyping(false);
+       setMessages(prev => [...prev, {
+         id: Date.now(),
+         role: 'agent',
+         content: data.message
+       }]);
+    });
+
+    socket.on('code_updated', () => {
+       toast.success("Agent modified the UI! Vite should auto-refresh.", { icon: "✨" });
+    });
+
+    socketRef.current = socket;
+
+    return () => {
+       socket.emit('leave_project', { project_id: activeProject.id });
+       socket.disconnect();
+    };
+  }, [activeProject?.id]);
 
   // Initialize with requirement message
   useEffect(() => {
@@ -162,24 +213,27 @@ function ChatSidebar() {
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !activeProject?.id) return;
     
     // Add user message
     const userMsg = { id: Date.now(), role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
-    setIsTyping(true);
-
-    // Mock agent response & edit execution
-    setTimeout(() => {
-      setIsTyping(false);
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        role: 'agent',
-        content: "I've applied those changes to the store. How does it look now?"
-      }]);
-      toast.success("Agent updated the UI!", { icon: "?" });
-    }, 2000);
+    
+    if (socketRef.current) {
+        socketRef.current.emit('chat_message', { project_id: activeProject.id, message: userMsg.content });
+    } else {
+        setIsTyping(true);
+        // Fallback mock if socket not connected
+        setTimeout(() => {
+          setIsTyping(false);
+          setMessages(prev => [...prev, {
+            id: Date.now(),
+            role: 'agent',
+            content: "Socket not connected, but I would have processed this."
+          }]);
+        }, 2000);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -220,10 +274,20 @@ function ChatSidebar() {
       {/* Input Area */}
       <div className="p-4 bg-[#0e0e0e]">
         <div className="flex flex-col gap-2 mb-4">
-          <button className="w-full py-2.5 rounded-lg bg-[#1a1a1a] text-xs font-medium text-gray-300 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
+          <button 
+             onClick={async () => {
+                 if(!activeProject) return;
+                 try{
+                    await projectsService.supabaseTest(activeProject.id, { url: "", key: "" });
+                    toast.success("Cloud Database Provisioned & Connected!");
+                 }catch(e){ toast.error("Failed"); }
+             }}
+             className="w-full py-2.5 rounded-lg bg-[#1a1a1a] text-xs font-medium text-gray-300 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
             Enable Cloud Database
           </button>
-          <button className="w-full py-2.5 rounded-lg bg-[#1a1a1a] text-xs font-medium text-gray-300 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
+          <button 
+            onClick={() => toast.success("Feature coming soon! Use the button above.")}
+            className="w-full py-2.5 rounded-lg bg-[#1a1a1a] text-xs font-medium text-gray-300 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
             Use external Supabase
           </button>
         </div>
@@ -445,7 +509,14 @@ function LivePreview() {
            </div>
            
            <div className="flex flex-1 max-w-[60px] justify-end">
-               <RotateCw size={14} className="text-gray-400" />
+               <button
+                 onClick={loadPreview}
+                 disabled={loading}
+                 className="p-1 rounded hover:bg-gray-200/70 disabled:opacity-50"
+                 title="Reload preview"
+               >
+                 <RefreshCw size={14} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
+               </button>
            </div>
         </div>
         

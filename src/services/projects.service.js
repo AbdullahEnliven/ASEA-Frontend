@@ -38,4 +38,10 @@ export const projectsService = {
 
   download: (id) =>
     api.get(`/projects/${encodeURIComponent(id)}/download`, { responseType: 'blob' }),
+
+  supabaseTest: (id, credentials) =>
+    api.post(`/projects/${encodeURIComponent(id)}/integrations/supabase/test`, credentials),
+  
+  deploy: (id) =>
+    api.post(`/projects/${encodeURIComponent(id)}/integrations/deploy`),
 };

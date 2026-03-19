@@ -337,10 +337,9 @@ export default function NewProjectPage() {
 
       // 2. Start generation immediately
       generationReset();
-      
-      // FAKE SIMULATION - we skip actual backend generation to avoid Supabase checks/errors over API
-      // await projectsService.startGeneration(newProjectId);
-      
+
+      await projectsService.startGeneration(newProjectId);
+
       // Move to animation step
       setStep(2);
     } catch (error) {
