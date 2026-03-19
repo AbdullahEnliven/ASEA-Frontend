@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Plus, LayoutGrid, List, Trash2, ExternalLink, Download } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { projectsService } from '@/services/projects.service';
 import { Button, Badge, Spinner } from '@/components/common';
 import useProjectsStore from '@/store/projects.store';
 
@@ -49,7 +50,26 @@ function ProjectCard({ project }) {
 
 export default function DashboardPage() {
   const projects = useProjectsStore((s) => s.projects);
+  const setProjects = useProjectsStore((s) => s.setProjects);
   const [view, setView] = useState('grid');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    projectsService.list()
+      .then((res) => {
+         setProjects(res.data.items || res.data || []);
+      })
+      .catch((err) => console.error("Failed to load projects", err))
+      .finally(() => setLoading(false));
+  }, [setProjects]);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-24">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
