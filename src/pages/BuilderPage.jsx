@@ -140,14 +140,169 @@ function BuilderToolbar() {
   );
 }
 
+// --- Agent Status Icons --------------------------------
+const STATUS_CONFIG = {
+  scanning: { icon: '🔍', color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Scanning' },
+  analyzing: { icon: '🧠', color: 'text-purple-400', bg: 'bg-purple-500/10', label: 'Analyzing' },
+  planning: { icon: '📝', color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Planning' },
+  writing: { icon: '✏️', color: 'text-green-400', bg: 'bg-green-500/10', label: 'Writing' },
+  complete: { icon: '✅', color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Complete' },
+  error: { icon: '❌', color: 'text-red-400', bg: 'bg-red-500/10', label: 'Error' },
+};
+
+// --- Agent Activity Step --------------------------------
+function AgentActivityStep({ step, isActive, isLast }) {
+  const config = STATUS_CONFIG[step.type] || STATUS_CONFIG.scanning;
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.2 }}
+      className={`flex items-start gap-2.5 py-1.5 ${isLast ? '' : 'opacity-60'}`}
+    >
+      <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${config.bg}`}>
+        {isActive && isLast ? (
+          <Loader2 size={12} className={`animate-spin ${config.color}`} />
+        ) : (
+          <span>{config.icon}</span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className={`text-xs font-medium ${config.color}`}>{config.label}</span>
+        <p className="text-[11px] text-gray-500 leading-snug truncate">{step.message}</p>
+        {step.details?.files_read && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {step.details.files_read.slice(0, 4).map((f, i) => (
+              <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500 font-mono">
+                {f.split('/').pop()}
+              </span>
+            ))}
+            {step.details.files_read.length > 4 && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500">
+                +{step.details.files_read.length - 4} more
+              </span>
+            )}
+          </div>
+        )}
+        {step.details?.files && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {step.details.files.map((f, i) => (
+              <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 font-mono">
+                {f.split('/').pop()}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// --- Agent Activity Card --------------------------------
+function AgentActivityCard({ steps, isActive }) {
+  const [expanded, setExpanded] = useState(true);
+  
+  if (!steps || steps.length === 0) return null;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full"
+    >
+      <div className="rounded-xl border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors"
+        >
+          {isActive ? (
+            <Loader2 size={12} className="animate-spin text-blue-400 shrink-0" />
+          ) : (
+            <Sparkles size={12} className="text-emerald-400 shrink-0" />
+          )}
+          <span className="text-[11px] font-medium text-gray-400 flex-1">
+            {isActive ? 'Agent is working...' : `Completed ${steps.length} steps`}
+          </span>
+          <ChevronDown
+            size={12}
+            className={`text-gray-500 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          />
+        </button>
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="px-3 pb-2.5 border-t border-white/[0.04]">
+                <div className="relative pl-3 mt-2">
+                  {/* Vertical connector line */}
+                  <div className="absolute left-[0.35rem] top-2 bottom-2 w-px bg-white/[0.06]" />
+                  {steps.map((step, i) => (
+                    <AgentActivityStep
+                      key={`${step.type}-${i}`}
+                      step={step}
+                      isActive={isActive}
+                      isLast={i === steps.length - 1}
+                    />
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+}
+
+// --- Files Modified Badge ------------------------------
+function FilesModifiedBadge({ files }) {
+  const [showAll, setShowAll] = useState(false);
+  if (!files || files.length === 0) return null;
+  
+  return (
+    <div className="mt-2 pt-2 border-t border-white/[0.06]">
+      <button
+        onClick={() => setShowAll(!showAll)}
+        className="flex items-center gap-1.5 text-[10px] text-gray-500 hover:text-gray-300 transition-colors"
+      >
+        <FileText size={10} />
+        <span>{files.length} file{files.length !== 1 ? 's' : ''} modified</span>
+        <ChevronDown size={10} className={`transition-transform ${showAll ? 'rotate-180' : ''}`} />
+      </button>
+      <AnimatePresence>
+        {showAll && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="mt-1.5 flex flex-col gap-1 overflow-hidden"
+          >
+            {files.map((f, i) => (
+              <span key={i} className="text-[10px] px-2 py-1 rounded-md bg-white/[0.03] text-gray-400 font-mono flex items-center gap-1.5">
+                <Code2 size={9} className="text-blue-400 shrink-0" />
+                {f}
+              </span>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // --- AI Chat Sidebar ----------------------------------
 function ChatSidebar() {
   const activeProject = useProjectsStore((s) => s.activeProject);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [agentSteps, setAgentSteps] = useState([]);
   const messagesEndRef = useRef(null);
-  // Socket state
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -163,15 +318,36 @@ function ChatSidebar() {
 
     socket.on('agent_typing', () => {
        setIsTyping(true);
+       setAgentSteps([]);
+    });
+
+    // Real-time agent status updates
+    socket.on('agent_status', (data) => {
+       setAgentSteps(prev => {
+         // Prevent duplicate consecutive steps of the same type
+         if (prev.length > 0 && prev[prev.length - 1].type === data.type && prev[prev.length - 1].message === data.message) {
+           return prev;
+         }
+         return [...prev, { type: data.type, message: data.message, details: data.details || {} }];
+       });
+       // If complete or error, stop typing indicator
+       if (data.type === 'complete' || data.type === 'error') {
+         setIsTyping(false);
+       }
     });
 
     socket.on('agent_reply', (data) => {
        setIsTyping(false);
+       const currentSteps = [...agentSteps];
        setMessages(prev => [...prev, {
          id: Date.now(),
          role: 'agent',
-         content: data.message
+         content: data.message,
+         files_modified: data.files_modified || [],
+         plan: data.plan || '',
+         steps: currentSteps.length > 0 ? currentSteps : undefined
        }]);
+       setAgentSteps([]);
     });
 
     socket.on('code_updated', () => {
@@ -193,12 +369,12 @@ function ChatSidebar() {
         { 
           id: 1, 
           role: 'user', 
-          content: activeProject.requirements || 'Build me a fashion store selling streetwear for men and women.' 
+          content: activeProject.requirements || 'Build my initial store.' 
         },
         { 
           id: 2, 
           role: 'agent', 
-          content: "I've generated your initial store based on that description! You have a database connected, authentication ready, and server-side functions configured.\n\nWould you like me to tweak the colors, add new components, or modify the layout?"
+          content: "I've generated your initial store! You have a database connected, authentication ready, and server-side functions configured.\n\nWould you like me to tweak the colors, add new components, or modify the layout?"
         }
       ]);
     }
@@ -210,12 +386,11 @@ function ChatSidebar() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [messages, isTyping, agentSteps]);
 
   const handleSend = async () => {
     if (!input.trim() || !activeProject?.id) return;
     
-    // Add user message
     const userMsg = { id: Date.now(), role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
@@ -224,7 +399,6 @@ function ChatSidebar() {
         socketRef.current.emit('chat_message', { project_id: activeProject.id, message: userMsg.content });
     } else {
         setIsTyping(true);
-        // Fallback mock if socket not connected
         setTimeout(() => {
           setIsTyping(false);
           setMessages(prev => [...prev, {
@@ -256,41 +430,46 @@ function ChatSidebar() {
               animate={{ opacity: 1, y: 0 }}
               className={`flex flex-col w-full ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
             >
+              {/* Show activity steps from the agent's work if available */}
+              {msg.role === 'agent' && msg.steps && msg.steps.length > 0 && (
+                <div className="w-full mb-2">
+                  <AgentActivityCard steps={msg.steps} isActive={false} />
+                </div>
+              )}
               <div className={`p-4 max-w-[95%] rounded-2xl text-[13px] leading-relaxed ${msg.role === 'user' ? 'bg-[#2b2b2b] text-white rounded-br-none' : 'bg-transparent text-gray-300 border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent rounded-bl-sm'}`}>
+                {msg.plan && (
+                  <div className="mb-2 pb-2 border-b border-white/[0.06]">
+                    <span className="text-[10px] font-semibold text-purple-400 uppercase tracking-wider">Plan</span>
+                    <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">{msg.plan}</p>
+                  </div>
+                )}
                 {msg.content}
+                <FilesModifiedBadge files={msg.files_modified} />
               </div>
             </motion.div>
           ))}
-          {isTyping && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 pl-2 text-gray-500">
-              <Loader2 size={14} className="animate-spin text-blue-500" />
-              <span className="text-xs">ASEA is thinking...</span>
+
+          {/* Live agent activity while working */}
+          {(isTyping || agentSteps.length > 0) && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+              {agentSteps.length > 0 ? (
+                <AgentActivityCard steps={agentSteps} isActive={isTyping} />
+              ) : (
+                <div className="flex items-center gap-2 pl-2 text-gray-500">
+                  <Loader2 size={14} className="animate-spin text-blue-500" />
+                  <span className="text-xs">ASEA is thinking...</span>
+                </div>
+              )}
             </motion.div>
           )}
+
           <div ref={messagesEndRef} />
         </AnimatePresence>
       </div>
 
       {/* Input Area */}
       <div className="p-4 bg-[#0e0e0e]">
-        <div className="flex flex-col gap-2 mb-4">
-          <button 
-             onClick={async () => {
-                 if(!activeProject) return;
-                 try{
-                    await projectsService.supabaseTest(activeProject.id, { url: "", key: "" });
-                    toast.success("Cloud Database Provisioned & Connected!");
-                 }catch(e){ toast.error("Failed"); }
-             }}
-             className="w-full py-2.5 rounded-lg bg-[#1a1a1a] text-xs font-medium text-gray-300 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
-            Enable Cloud Database
-          </button>
-          <button 
-            onClick={() => toast.success("Feature coming soon! Use the button above.")}
-            className="w-full py-2.5 rounded-lg bg-[#1a1a1a] text-xs font-medium text-gray-300 hover:text-white border border-white/10 hover:border-white/20 transition-colors">
-            Use external Supabase
-          </button>
-        </div>
+        {/* Database buttons removed as per user request */}
         
         <div className="bg-[#1a1a1a] rounded-2xl border border-white/10 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all shadow-lg flex flex-col">
           <textarea

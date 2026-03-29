@@ -10,7 +10,7 @@ import useProjectsStore from '@/store/projects.store';
 import { projectsService } from '@/services/projects.service';
 
 // ─── Step 1: Requirement Input ────────────────────────
-function RequirementStep({ data, onChange, onGenerate, loading }) {
+function RequirementStep({ data, onChange, onGenerate }) {
   const [enhancing, setEnhancing] = useState(false);
 
   const enhance = async () => {
@@ -107,8 +107,7 @@ function RequirementStep({ data, onChange, onGenerate, loading }) {
         <Button
           size="lg"
           onClick={onGenerate}
-          disabled={!data.requirements?.trim() || loading}
-          loading={loading}
+          disabled={!data.requirements?.trim()}
         >
           Generate Store <ArrowRight size={18} />
         </Button>
@@ -312,7 +311,6 @@ export default function NewProjectPage() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState({});
   const [projectId, setProjectId] = useState(null);
-  const [loading, setLoading] = useState(false);
   
   const addProject = useProjectsStore((s) => s.addProject);
   const generationReset = useGenerationStore((s) => s.reset);
@@ -322,9 +320,17 @@ export default function NewProjectPage() {
   }, []);
 
   const handleGenerate = async () => {
-    setLoading(true);
+    if (!data.requirements?.trim()) {
+      toast.error('Please describe your store first');
+      return;
+    }
+
+    // Immediately navigate to the animation loading page
+    generationReset();
+    setStep(2);
+
     try {
-      // 1. Create project directly
+      // Run API calls in the background while animation plays
       const res = await projectsService.create({
         requirements: data.requirements,
         category: data.category,
@@ -335,19 +341,14 @@ export default function NewProjectPage() {
       setProjectId(newProjectId);
       addProject(res.data.project);
 
-      // 2. Start generation immediately
-      generationReset();
-
+      // Start generation
       await projectsService.startGeneration(newProjectId);
-
-      // Move to animation step
-      setStep(2);
     } catch (error) {
       console.error(error);
       const message = error?.response?.data?.detail;
       toast.error(message || 'Failed to start generation');
-    } finally {
-      setLoading(false);
+      // Return to requirements step on failure
+      setStep(1);
     }
   };
 
@@ -376,7 +377,6 @@ export default function NewProjectPage() {
               data={data} 
               onChange={updateData} 
               onGenerate={handleGenerate} 
-              loading={loading}
             />
           </motion.div>
         )}

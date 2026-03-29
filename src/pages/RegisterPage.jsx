@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button, Input } from '@/components/common';
 import useAuthStore from '@/store/auth.store';
@@ -39,6 +40,8 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -97,9 +100,19 @@ export default function RegisterPage() {
           <div>
             <Input
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               error={errors.password?.message}
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              }
               {...register('password')}
             />
             {password && (
@@ -122,9 +135,19 @@ export default function RegisterPage() {
           </div>
           <Input
             label="Confirm Password"
-            type="password"
+            type={showConfirmPassword ? 'text' : 'password'}
             placeholder="••••••••"
             error={errors.confirmPassword?.message}
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="text-gray-400 hover:text-white transition-colors"
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            }
             {...register('confirmPassword')}
           />
 

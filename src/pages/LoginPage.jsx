@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button, Input } from '@/components/common';
 import useAuthStore from '@/store/auth.store';
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const location = useLocation();
   const login = useAuthStore((s) => s.login);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const from = location.state?.from?.pathname || '/dashboard';
 
@@ -76,9 +78,19 @@ export default function LoginPage() {
           />
           <Input
             label="Password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="••••••••"
             error={errors.password?.message}
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="text-gray-400 hover:text-white transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            }
             {...register('password')}
           />
 
