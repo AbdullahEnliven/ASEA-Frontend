@@ -300,10 +300,43 @@ function ChatSidebar() {
   const activeProject = useProjectsStore((s) => s.activeProject);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [agentSteps, setAgentSteps] = useState([]);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
+
+  useEffect(() => {
+    if (!activeProject?.id) return;
+
+    let mounted = true;
+    setLoadingHistory(true);
+    setMessages([]);
+
+    projectsService
+      .getChatHistory(activeProject.id)
+      .then((res) => {
+        if (!mounted) return;
+        const persisted = (res.data?.messages || []).map((msg) => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          files_modified: msg.metadata?.files_modified || [],
+          plan: msg.metadata?.plan || '',
+        }));
+        setMessages(persisted);
+      })
+      .catch(() => {
+        if (mounted) setMessages([]);
+      })
+      .finally(() => {
+        if (mounted) setLoadingHistory(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeProject?.id]);
 
   useEffect(() => {
     if (!activeProject?.id) return;
@@ -362,24 +395,6 @@ function ChatSidebar() {
     };
   }, [activeProject?.id]);
 
-  // Initialize with requirement message
-  useEffect(() => {
-    if (activeProject && messages.length === 0) {
-      setMessages([
-        { 
-          id: 1, 
-          role: 'user', 
-          content: activeProject.requirements || 'Build my initial store.' 
-        },
-        { 
-          id: 2, 
-          role: 'agent', 
-          content: "I've generated your initial store! You have a database connected, authentication ready, and server-side functions configured.\n\nWould you like me to tweak the colors, add new components, or modify the layout?"
-        }
-      ]);
-    }
-  }, [activeProject]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -419,9 +434,15 @@ function ChatSidebar() {
 
   return (
     <div className="w-[340px] flex flex-col bg-[#0e0e0e] border-r border-white/10 h-full relative shrink-0">
-      
+
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-6">
+        {loadingHistory && (
+          <div className="flex items-center gap-2 text-gray-500">
+            <Loader2 size={13} className="animate-spin" />
+            <span className="text-xs">Loading chat history...</span>
+          </div>
+        )}
         <AnimatePresence>
           {messages.map((msg) => (
             <motion.div 

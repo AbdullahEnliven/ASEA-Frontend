@@ -1,10 +1,197 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Download, Database, Github, Check, X, Loader2, ExternalLink } from 'lucide-react';
+import { Download, Database, Github, Check, X, Loader2, ExternalLink, Cloud, Globe, Terminal, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { io } from 'socket.io-client';
 import { Button, Input } from '@/components/common';
 import { projectsService } from '@/services/projects.service';
 import { integrationsService } from '@/services/integrations.service';
+
+// ─── Cloud Deploy Tab ───────────────────────────────────
+function CloudDeployTab({ projectId }) {
+  const [subdomain, setSubdomain] = useState('');
+  const [deploying, setDeploying] = useState(false);
+  const [step, setStep] = useState(0); // 0 = setup, 1 = deploy, 2 = success
+  const [logs, setLogs] = useState([]);
+  const [deployedUrl, setDeployedUrl] = useState(null);
+  const logsEndRef = React.useRef(null);
+  const socketRef = React.useRef(null);
+
+  // Auto-fill subdomain based on project name hash or just let user type
+  useEffect(() => {
+    // Basic random name
+    setSubdomain(`store-${Math.random().toString(36).substring(2, 7)}`);
+  }, []);
+
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
+
+  useEffect(() => {
+    if (step === 1) {
+      const socket = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8000', {
+        transports: ['websocket'],
+      });
+      socketRef.current = socket;
+      
+      socket.on('connect', () => {
+        socket.emit('join_project', { project_id: projectId });
+      });
+
+      socket.on('deployment_log', (data) => {
+         setLogs((prev) => [...prev, data.line]);
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    }
+  }, [step, projectId]);
+
+  const handleDeploy = async () => {
+    if (!subdomain.trim() || subdomain.length < 3) {
+      toast.error('Please enter a valid subdomain (at least 3 characters)');
+      return;
+    }
+    
+    setDeploying(true);
+    setStep(1);
+    setLogs(['Initiating deployment sequence...', 'Allocating Edge resources...', 'Pulling latest code artifacts...']);
+    
+    try {
+      const res = await integrationsService.deployToCloud(projectId, { subdomain });
+      setDeployedUrl(res.data.url);
+      setLogs((prev) => [...prev, 'Deployment successful!', `Live at: ${res.data.url}`]);
+      setStep(2);
+      toast.success('Successfully deployed to ASEA Cloud!');
+    } catch (e) {
+      const errMessage = e.response?.data?.detail || 'Deployment failed';
+      toast.error(errMessage);
+      setLogs((prev) => [...prev, `[ERROR] ${errMessage}`]);
+      setStep(0);
+    } finally {
+      setDeploying(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto py-8">
+      {step === 0 && (
+        <div className="space-y-8">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-2xl border border-blue-500/20 bg-blue-500/10 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+              <Cloud size={28} className="text-blue-400" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Deploy to ASEA Edge</h3>
+            <p className="text-gray-400 text-sm max-w-md mx-auto">
+              Instantly deploy your store to our global edge network. Get a live, production-ready URL instantly.
+            </p>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col gap-6 w-full max-w-md mx-auto shadow-xl">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Choose a Custom Subdomain
+              </label>
+              <div className="flex w-full bg-[#111] rounded-xl border border-white/10 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all overflow-hidden items-center">
+                <div className="pl-4 pr-1">
+                  <Globe size={16} className="text-gray-500" />
+                </div>
+                <input
+                  type="text"
+                  value={subdomain}
+                  onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  placeholder="my-awesome-store"
+                  className="w-full bg-transparent border-none outline-none text-white text-sm py-3 px-2 font-mono"
+                />
+                <div className="px-4 py-3 bg-white/5 border-l border-white/10 text-gray-400 text-sm whitespace-nowrap select-none font-mono">
+                  .enliven-app.com
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">Only lowercase letters, numbers, and hyphens.</p>
+            </div>
+
+            <Button size="lg" className="w-full" onClick={handleDeploy}>
+              <Cloud size={16} /> Deploy to Edge
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="w-full">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center justify-center p-2 rounded-lg bg-blue-500/20 text-blue-400">
+              <Loader2 size={16} className="animate-spin" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Deploying to Edge...</h3>
+              <p className="text-xs text-gray-400">Please wait while your project builds and deploys</p>
+            </div>
+          </div>
+          
+          <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.08] p-4 font-mono text-xs overflow-hidden h-[300px] flex flex-col relative shadow-2xl">
+            <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#0A0A0A] to-transparent z-10 pointers-none"></div>
+            <div className="flex-1 overflow-y-auto space-y-1.5 pt-2 pb-8 scrollbar-hide">
+              {logs.map((log, i) => (
+                <motion.div
+                  initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
+                  key={i}
+                  className={`${log.includes('[ERROR]') ? 'text-red-400' : log.includes('successful') ? 'text-emerald-400' : 'text-gray-300'}`}
+                >
+                  <span className="text-gray-600 mr-2">$</span>
+                  {log}
+                </motion.div>
+              ))}
+              <div ref={logsEndRef} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && deployedUrl && (
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto py-8">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
+            <Check size={32} className="text-emerald-400" />
+          </div>
+          <h3 className="text-2xl font-bold mb-2 text-center text-white">You're Live!</h3>
+          <p className="text-gray-400 text-center mb-8">
+            Your store has been successfully deployed and is now globally available.
+          </p>
+
+          <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 mb-6 text-center shadow-lg relative overflow-hidden group">
+             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/0 via-emerald-400 to-emerald-500/0 opacity-50"></div>
+             <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-2 flex items-center justify-center gap-1.5">
+               <Activity size={12} className="text-emerald-400" /> Production URL
+             </p>
+             <a 
+               href={deployedUrl} 
+               target="_blank" 
+               rel="noreferrer" 
+               className="text-lg font-mono text-emerald-300 hover:text-emerald-200 transition-colors inline-block break-all"
+             >
+               {deployedUrl}
+             </a>
+          </div>
+
+          <div className="flex gap-4">
+             <Button variant="ghost" className="flex-1" onClick={() => setStep(0)}>
+               Deploy Another
+             </Button>
+             <Button 
+               className="flex-1 bg-emerald-600 hover:bg-emerald-500 border border-emerald-500" 
+               onClick={() => window.open(deployedUrl, '_blank')}
+             >
+               <ExternalLink size={16} /> Visit App
+             </Button>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
 
 // ─── Download Tab ─────────────────────────────────────
 function DownloadTab({ projectId }) {
@@ -283,9 +470,10 @@ export default function DeployPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(initialTab || 'download');
+  const [activeTab, setActiveTab] = useState(initialTab || 'cloud');
 
   const tabs = [
+    { id: 'cloud', label: 'ASEA Cloud', icon: Cloud },
     { id: 'download', label: 'Download', icon: Download },
     { id: 'supabase', label: 'Supabase', icon: Database },
     { id: 'github', label: 'GitHub', icon: Github },
@@ -313,6 +501,7 @@ export default function DeployPage() {
         ))}
       </div>
 
+      {activeTab === 'cloud' && <CloudDeployTab projectId={id} />}
       {activeTab === 'download' && <DownloadTab projectId={id} />}
       {activeTab === 'supabase' && <SupabaseTab projectId={id} />}
       {activeTab === 'github' && <GithubTab projectId={id} />}

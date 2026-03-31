@@ -23,4 +23,8 @@ export const integrationsService = {
     api.post(`/projects/${encodeURIComponent(projectId)}/integrations/github/push`, config),
 
   getGithubOrgs: () => api.get('/integrations/github/orgs'),
+
+  // Cloud Deploy
+  deployToCloud: (projectId, config) => 
+    api.post(`/projects/${encodeURIComponent(projectId)}/integrations/deploy`, config),
 };

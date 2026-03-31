@@ -36,6 +36,18 @@ export const projectsService = {
   enhanceRequirements: (text) =>
     api.post('/projects/enhance-requirements', { text }),
 
+  getChatHistory: (id) =>
+    api.get(`/projects/${encodeURIComponent(id)}/chat-history`),
+
+  listCheckpoints: (id) =>
+    api.get(`/projects/${encodeURIComponent(id)}/checkpoints`),
+
+  createCheckpoint: (id, message) =>
+    api.post(`/projects/${encodeURIComponent(id)}/checkpoints`, { message }),
+
+  restoreCheckpoint: (id, checkpointId) =>
+    api.post(`/projects/${encodeURIComponent(id)}/checkpoints/${encodeURIComponent(checkpointId)}/restore`),
+
   download: (id) =>
     api.get(`/projects/${encodeURIComponent(id)}/download`, { responseType: 'blob' }),
 
