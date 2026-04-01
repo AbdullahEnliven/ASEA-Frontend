@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Download, Database, Github, Check, X, Loader2, ExternalLink, Cloud, Globe, Terminal, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
+import { motion } from 'framer-motion';
 import { Button, Input } from '@/components/common';
 import { projectsService } from '@/services/projects.service';
 import { integrationsService } from '@/services/integrations.service';
@@ -14,8 +15,8 @@ function CloudDeployTab({ projectId }) {
   const [step, setStep] = useState(0); // 0 = setup, 1 = deploy, 2 = success
   const [logs, setLogs] = useState([]);
   const [deployedUrl, setDeployedUrl] = useState(null);
-  const logsEndRef = React.useRef(null);
-  const socketRef = React.useRef(null);
+  const logsEndRef = useRef(null);
+  const socketRef = useRef(null);
 
   // Auto-fill subdomain based on project name hash or just let user type
   useEffect(() => {
@@ -121,67 +122,86 @@ function CloudDeployTab({ projectId }) {
       )}
 
       {step === 1 && (
-        <div className="w-full">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center justify-center p-2 rounded-lg bg-blue-500/20 text-blue-400">
-              <Loader2 size={16} className="animate-spin" />
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative flex items-center justify-center p-3 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+              <Loader2 size={24} className="animate-spin" />
+              <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full"></div>
             </div>
             <div>
-              <h3 className="font-semibold text-white">Deploying to Edge...</h3>
-              <p className="text-xs text-gray-400">Please wait while your project builds and deploys</p>
+              <h3 className="text-lg font-bold text-white tracking-tight">Deploying to ASEA Edge...</h3>
+              <p className="text-sm text-blue-200/60 font-medium">Please do not close this window</p>
             </div>
           </div>
           
-          <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.08] p-4 font-mono text-xs overflow-hidden h-[300px] flex flex-col relative shadow-2xl">
-            <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#0A0A0A] to-transparent z-10 pointers-none"></div>
-            <div className="flex-1 overflow-y-auto space-y-1.5 pt-2 pb-8 scrollbar-hide">
-              {logs.map((log, i) => (
-                <motion.div
-                  initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
-                  key={i}
-                  className={`${log.includes('[ERROR]') ? 'text-red-400' : log.includes('successful') ? 'text-emerald-400' : 'text-gray-300'}`}
-                >
-                  <span className="text-gray-600 mr-2">$</span>
-                  {log}
-                </motion.div>
-              ))}
-              <div ref={logsEndRef} />
+          <div className="bg-[#050505] rounded-2xl border border-white/[0.08] flex flex-col relative shadow-2xl overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center px-4 py-3 bg-[#111] border-b border-white/[0.05] relative z-20">
+              <div className="flex gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.4)]"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500/80 shadow-[0_0_10px_rgba(234,179,8,0.4)]"></div>
+                <div className="w-3 h-3 rounded-full bg-emerald-500/80 shadow-[0_0_10px_rgba(16,185,129,0.4)]"></div>
+              </div>
+              <span className="ml-4 text-xs font-semibold tracking-widest text-gray-500 uppercase">Build Terminal</span>
+            </div>
+            <div className="relative h-[350px] font-mono text-sm">
+              <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-[#050505] to-transparent z-10 pointer-events-none"></div>
+              <div className="h-full overflow-y-auto pt-3 pb-8 px-5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent space-y-2">
+                {logs.map((log, i) => (
+                  <motion.div
+                    initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    key={i}
+                    className={`flex items-start break-words leading-relaxed ${
+                      log.includes('[ERROR]') || log.toLowerCase().includes('failed') ? 'text-red-400 font-medium' : 
+                      log.includes('successful') || log.includes('SUCCESS') || log.includes('live') ? 'text-emerald-400 font-medium' : 
+                      log.startsWith('>') || log.startsWith('!') ? 'text-blue-300' :
+                      'text-gray-300'
+                    }`}
+                  >
+                    <span className="text-gray-600 mr-3 select-none mt-0.5">❯</span>
+                    <span className="flex-1">{log}</span>
+                  </motion.div>
+                ))}
+                <div ref={logsEndRef} className="h-4" />
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {step === 2 && deployedUrl && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto py-8">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
-            <Check size={32} className="text-emerald-400" />
+        <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.4, type: "spring" }} className="max-w-md mx-auto py-10">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500/20 to-emerald-400/5 flex items-center justify-center mx-auto mb-6 shadow-[0_0_40px_rgba(16,185,129,0.2)] border border-emerald-500/20 relative">
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 200 }}>
+              <Check size={36} className="text-emerald-400" />
+            </motion.div>
           </div>
-          <h3 className="text-2xl font-bold mb-2 text-center text-white">You're Live!</h3>
-          <p className="text-gray-400 text-center mb-8">
-            Your store has been successfully deployed and is now globally available.
+          <h3 className="text-3xl font-bold mb-3 text-center text-white tracking-tight">You're Live!</h3>
+          <p className="text-gray-400 text-center mb-8 text-sm">
+            Your store has been successfully deployed to our edge network and is now globally available.
           </p>
 
-          <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 mb-6 text-center shadow-lg relative overflow-hidden group">
+          <div className="p-5 rounded-2xl border border-emerald-500/30 bg-[#050505] mb-8 text-center shadow-[0_10px_30px_-10px_rgba(16,185,129,0.15)] relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/0 via-emerald-400 to-emerald-500/0 opacity-50"></div>
-             <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-2 flex items-center justify-center gap-1.5">
-               <Activity size={12} className="text-emerald-400" /> Production URL
+             <p className="text-xs text-emerald-500/80 uppercase tracking-widest font-bold mb-3 flex items-center justify-center gap-2">
+               <Activity size={14} className="text-emerald-400 animate-pulse" /> Production URL
              </p>
              <a 
                href={deployedUrl} 
                target="_blank" 
                rel="noreferrer" 
-               className="text-lg font-mono text-emerald-300 hover:text-emerald-200 transition-colors inline-block break-all"
+               className="text-lg font-mono font-medium text-emerald-300 hover:text-emerald-100 transition-colors inline-block break-all bg-emerald-500/10 px-4 py-2 rounded-lg"
              >
-               {deployedUrl}
+               {deployedUrl.replace('https://', '')}
              </a>
           </div>
 
           <div className="flex gap-4">
-             <Button variant="ghost" className="flex-1" onClick={() => setStep(0)}>
+             <Button variant="ghost" className="flex-1 border border-white/10 hover:bg-white/5" onClick={() => setStep(0)}>
                Deploy Another
              </Button>
              <Button 
-               className="flex-1 bg-emerald-600 hover:bg-emerald-500 border border-emerald-500" 
+               className="flex-1 bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all" 
                onClick={() => window.open(deployedUrl, '_blank')}
              >
                <ExternalLink size={16} /> Visit App

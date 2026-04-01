@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Plus, LayoutGrid, List, Trash2, ExternalLink, Download } from 'lucide-react';
+import { Plus, LayoutGrid, List, Trash2, ExternalLink, Download, Code2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { projectsService } from '@/services/projects.service';
 import { Button, Badge, Spinner } from '@/components/common';
@@ -36,6 +36,12 @@ function ProjectCard({ project }) {
           className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10"
         >
           <ExternalLink size={12} /> Open
+        </Link>
+        <Link
+          to={`/projects/${project.id}/code`}
+          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10"
+        >
+          <Code2 size={12} /> Code
         </Link>
         <button className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10">
           <Download size={12} /> Download
