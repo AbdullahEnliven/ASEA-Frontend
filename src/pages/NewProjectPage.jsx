@@ -94,6 +94,9 @@ function RequirementStep({ data, onChange, onGenerate }) {
             value={data.storeName || ''}
             onChange={(e) => onChange({ storeName: e.target.value })}
           />
+          <p className="text-xs text-gray-500 -mt-2">
+            Leave blank to auto-generate a strong store name using Groq.
+          </p>
           <Input
             label="Target Market"
             placeholder="e.g. Young adults 18-35"
