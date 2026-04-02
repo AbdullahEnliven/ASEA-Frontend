@@ -43,7 +43,7 @@ import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
 
 // --- Toolbar ------------------------------------------
-function BuilderToolbar() {
+function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
   const {
     deviceMode,
     setDeviceMode,
@@ -55,7 +55,6 @@ function BuilderToolbar() {
   const activeProject = useProjectsStore((s) => s.activeProject);
   const [downloading, setDownloading] = useState(false);
   const [deploying, setDeploying] = useState(false);
-  const [deployedUrl, setDeployedUrl] = useState('');
 
   const devices = [
     { mode: 'desktop', icon: Monitor },
@@ -174,29 +173,16 @@ function BuilderToolbar() {
         <Button variant="secondary" size="sm" className="bg-[#1a1a1a] border-white/10 text-white hover:bg-[#2a2a2a]">
           <Rocket size={13} className="text-purple-400" /> Upgrade
         </Button>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center">
           <Button
             size="sm"
-            className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_18px_rgba(16,185,129,0.25)] border border-emerald-500/40"
+            className="bg-white text-black border border-gray-300 hover:bg-gray-100"
             onClick={handleDeploy}
             loading={deploying}
           >
-            <ExternalLink size={13} />
+            <Rocket size={13} />
             {deploying ? 'Deploying...' : 'Deploy'}
           </Button>
-          {deployedUrl ? (
-            <a
-              href={deployedUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="max-w-[240px] truncate text-[11px] text-emerald-400 hover:text-emerald-300 underline underline-offset-2"
-              title={deployedUrl}
-            >
-              Live: {deployedUrl}
-            </a>
-          ) : (
-            <span className="text-[11px] text-gray-500">URL will appear here after deploy</span>
-          )}
         </div>
       </div>
     </div>
@@ -368,38 +354,45 @@ function ChatSidebar() {
   const [agentSteps, setAgentSteps] = useState([]);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
+  const mountedRef = useRef(false);
+  const agentStepsRef = useRef([]);
+
+  const buildMessageId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }, []);
+
+  const loadChatHistory = useCallback(async () => {
+    if (!activeProject?.id) return;
+    setLoadingHistory(true);
+    try {
+      const res = await projectsService.getChatHistory(activeProject.id);
+      if (!mountedRef.current) return;
+      const persisted = (res.data?.messages || []).map((msg) => ({
+        id: msg.id || buildMessageId(),
+        role: msg.role === 'assistant' ? 'agent' : (msg.role || 'agent'),
+        content: msg.content || '',
+        files_modified: msg.metadata?.files_modified || [],
+        plan: msg.metadata?.plan || '',
+      }));
+      setMessages(persisted);
+    } catch {
+      if (mountedRef.current) setMessages([]);
+    } finally {
+      if (mountedRef.current) setLoadingHistory(false);
+    }
+  }, [activeProject?.id, buildMessageId]);
 
   useEffect(() => {
-    if (!activeProject?.id) return;
-
-    let mounted = true;
-    setLoadingHistory(true);
-    setMessages([]);
-
-    projectsService
-      .getChatHistory(activeProject.id)
-      .then((res) => {
-        if (!mounted) return;
-        const persisted = (res.data?.messages || []).map((msg) => ({
-          id: msg.id,
-          role: msg.role,
-          content: msg.content,
-          files_modified: msg.metadata?.files_modified || [],
-          plan: msg.metadata?.plan || '',
-        }));
-        setMessages(persisted);
-      })
-      .catch(() => {
-        if (mounted) setMessages([]);
-      })
-      .finally(() => {
-        if (mounted) setLoadingHistory(false);
-      });
-
+    mountedRef.current = true;
+    if (activeProject?.id) {
+      setMessages([]);
+      loadChatHistory();
+    }
     return () => {
-      mounted = false;
+      mountedRef.current = false;
     };
-  }, [activeProject?.id]);
+  }, [activeProject?.id, loadChatHistory]);
 
   useEffect(() => {
     if (!activeProject?.id) return;
@@ -415,6 +408,7 @@ function ChatSidebar() {
     socket.on('agent_typing', () => {
        setIsTyping(true);
        setAgentSteps([]);
+       agentStepsRef.current = [];
     });
 
     // Real-time agent status updates
@@ -422,9 +416,12 @@ function ChatSidebar() {
        setAgentSteps(prev => {
          // Prevent duplicate consecutive steps of the same type
          if (prev.length > 0 && prev[prev.length - 1].type === data.type && prev[prev.length - 1].message === data.message) {
+           agentStepsRef.current = prev;
            return prev;
          }
-         return [...prev, { type: data.type, message: data.message, details: data.details || {} }];
+         const next = [...prev, { type: data.type, message: data.message, details: data.details || {} }];
+         agentStepsRef.current = next;
+         return next;
        });
        // If complete or error, stop typing indicator
        if (data.type === 'complete' || data.type === 'error') {
@@ -432,19 +429,28 @@ function ChatSidebar() {
        }
     });
 
-    socket.on('agent_reply', (data) => {
+    const handleAgentReply = (data) => {
        setIsTyping(false);
-       const currentSteps = [...agentSteps];
+       const currentSteps = [...agentStepsRef.current];
        setMessages(prev => [...prev, {
-         id: Date.now(),
-         role: 'agent',
-         content: data.message,
+         id: data.id || buildMessageId(),
+         role: data.role === 'assistant' ? 'agent' : (data.role || 'agent'),
+         content: data.message || data.content || data.reply || 'Agent replied.',
          files_modified: data.files_modified || [],
          plan: data.plan || '',
          steps: currentSteps.length > 0 ? currentSteps : undefined
        }]);
+       // Always sync with persisted history after receiving a reply.
+       setTimeout(() => {
+         if (mountedRef.current) loadChatHistory();
+       }, 150);
        setAgentSteps([]);
-    });
+       agentStepsRef.current = [];
+    };
+
+    socket.on('agent_reply', handleAgentReply);
+    // Backward compatibility for alternate server event naming.
+    socket.on('agent_response', handleAgentReply);
 
     socket.on('code_updated', () => {
        toast.success("Agent modified the UI! Vite should auto-refresh.", { icon: "✨" });
@@ -469,7 +475,7 @@ function ChatSidebar() {
   const handleSend = async () => {
     if (!input.trim() || !activeProject?.id) return;
     
-    const userMsg = { id: Date.now(), role: 'user', content: input };
+    const userMsg = { id: buildMessageId(), role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     
@@ -649,7 +655,7 @@ function InlineEditor({ activeEdit, onClose, onSave }) {
 }
 
 // --- Live Preview -------------------------------------
-function LivePreview() {
+function LivePreview({ deployedUrl }) {
   const { deviceMode, activePage, editMode } = useBuilderStore();
   const activeProject = useProjectsStore((s) => s.activeProject);
   const iframeRef = useRef(null);
@@ -766,9 +772,20 @@ function LivePreview() {
            </div>
            
            <div className="mx-auto flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md text-[11px] text-gray-600 font-mono flex-1 max-w-sm justify-center">
-             <span className="text-gray-400">https://</span>
-             <span>{activeProject?.name?.toLowerCase().replace(/\s/g, '-') || 'preview'}</span>
-             <span>.asea.dev</span>
+             <span className="truncate" title={deployedUrl || `https://${activeProject?.name?.toLowerCase().replace(/\s/g, '-') || 'preview'}.asea.dev`}>
+               {deployedUrl || `https://${activeProject?.name?.toLowerCase().replace(/\s/g, '-') || 'preview'}.asea.dev`}
+             </span>
+             {deployedUrl ? (
+               <a
+                 href={deployedUrl}
+                 target="_blank"
+                 rel="noreferrer"
+                 className="text-gray-500 hover:text-gray-800"
+                 title="Open deployed URL"
+               >
+                 <ExternalLink size={12} />
+               </a>
+             ) : null}
            </div>
            
            <div className="flex flex-1 max-w-[60px] justify-end">
@@ -1068,6 +1085,7 @@ export default function BuilderPage() {
   const { id } = useParams();
   const { viewMode, reset } = useBuilderStore();
   const { setActiveProject } = useProjectsStore();
+  const [deployedUrl, setDeployedUrl] = useState('');
 
   useEffect(() => {
     // Load project data
@@ -1081,10 +1099,10 @@ export default function BuilderPage() {
 
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] overflow-hidden">
-      <BuilderToolbar />
+      <BuilderToolbar deployedUrl={deployedUrl} setDeployedUrl={setDeployedUrl} />
       <div className="flex flex-1 overflow-hidden h-[calc(100vh-56px)]">
         <ChatSidebar />
-        {viewMode === 'preview' ? <LivePreview /> : <CodeViewerPane />}
+        {viewMode === 'preview' ? <LivePreview deployedUrl={deployedUrl} /> : <CodeViewerPane />}
       </div>
     </div>
   );
