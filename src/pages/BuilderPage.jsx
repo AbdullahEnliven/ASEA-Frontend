@@ -17,6 +17,7 @@ import {
   Loader2,
   Copy,
   Download,
+  Database,
   Send,
   MessageSquare,
   Sparkles,
@@ -37,6 +38,7 @@ import TipTapLink from '@tiptap/extension-link';
 import useBuilderStore from '@/store/builder.store';
 import useProjectsStore from '@/store/projects.store';
 import { projectsService } from '@/services/projects.service';
+import { integrationsService } from '@/services/integrations.service';
 import { DEVICE_WIDTHS } from '@/constants';
 import { Button } from '@/components/common';
 import toast from 'react-hot-toast';
@@ -55,12 +57,37 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
   const activeProject = useProjectsStore((s) => s.activeProject);
   const [downloading, setDownloading] = useState(false);
   const [deploying, setDeploying] = useState(false);
+  const [supabaseConnected, setSupabaseConnected] = useState(true);
+  const [checkingSupabase, setCheckingSupabase] = useState(false);
 
   const devices = [
     { mode: 'desktop', icon: Monitor },
     { mode: 'tablet', icon: Tablet },
     { mode: 'mobile', icon: Smartphone },
   ];
+
+  useEffect(() => {
+    if (!activeProject?.id) return;
+    let mounted = true;
+    setCheckingSupabase(true);
+    integrationsService
+      .getSupabaseStatus(activeProject.id)
+      .then((res) => {
+        if (!mounted) return;
+        setSupabaseConnected(Boolean(res.data?.connected));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setSupabaseConnected(false);
+      })
+      .finally(() => {
+        if (mounted) setCheckingSupabase(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeProject?.id]);
 
   const handleDownloadCode = async () => {
     if (!activeProject?.id) return;
@@ -156,6 +183,16 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
       </div>
 
       <div className="flex items-center gap-3">
+        {!checkingSupabase && !supabaseConnected && activeProject?.id && (
+          <Link
+            to={`/projects/${activeProject.id}/deploy?tab=supabase`}
+            className="inline-flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition-colors"
+            title="Connect backend database"
+          >
+            <Database size={13} />
+            Warning: Connect backend (Supabase)
+          </Link>
+        )}
         <button
           onClick={handleDownloadCode}
           disabled={downloading}

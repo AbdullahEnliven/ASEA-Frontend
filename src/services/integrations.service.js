@@ -11,6 +11,9 @@ export const integrationsService = {
   runMigrations: (projectId, credentials) =>
     api.post(`/projects/${encodeURIComponent(projectId)}/integrations/supabase/migrate`, credentials),
 
+  getSupabaseInitScript: (projectId) =>
+    api.get(`/projects/${encodeURIComponent(projectId)}/integrations/supabase/init-script`),
+
   seedData: (projectId) =>
     api.post(`/projects/${encodeURIComponent(projectId)}/integrations/supabase/seed`),
 

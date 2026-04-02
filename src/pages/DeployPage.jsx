@@ -259,6 +259,9 @@ function SupabaseTab({ projectId }) {
   const [testing, setTesting] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [initScript, setInitScript] = useState('');
+  const [loadingScript, setLoadingScript] = useState(false);
+  const [scriptCopied, setScriptCopied] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -285,6 +288,28 @@ function SupabaseTab({ projectId }) {
     loadStatus();
     return () => {
       isMounted = false;
+    };
+  }, [projectId]);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoadingScript(true);
+    integrationsService
+      .getSupabaseInitScript(projectId)
+      .then((res) => {
+        if (!mounted) return;
+        setInitScript(res.data?.script || '');
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setInitScript('');
+      })
+      .finally(() => {
+        if (mounted) setLoadingScript(false);
+      });
+
+    return () => {
+      mounted = false;
     };
   }, [projectId]);
 
@@ -315,15 +340,95 @@ function SupabaseTab({ projectId }) {
     }
   };
 
+  const copyScript = async () => {
+    if (!initScript) return;
+    try {
+      await navigator.clipboard.writeText(initScript);
+      setScriptCopied(true);
+      toast.success('SQL init script copied');
+      setTimeout(() => setScriptCopied(false), 1500);
+    } catch {
+      toast.error('Copy failed');
+    }
+  };
+
   return (
-    <div className="max-w-md mx-auto py-8">
+    <div className="max-w-3xl mx-auto py-8">
       <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
         <Database size={28} className="text-emerald-400" />
       </div>
       <h3 className="text-lg font-semibold mb-2 text-center">Connect Supabase</h3>
       <p className="text-sm text-gray-400 mb-8 text-center">
-        Connect your Supabase project to set up the database.
+        Follow this step-by-step pipeline to connect backend for this project.
       </p>
+
+      <div className="mb-8 p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-200 text-sm">
+        Project backend is not fully connected until all steps below are completed.
+      </div>
+
+      <div className="space-y-6 mb-8">
+        <div className="p-5 rounded-2xl border border-white/10 bg-white/[0.03]">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold flex items-center justify-center">1</span>
+            <h4 className="font-semibold">Create Supabase project</h4>
+          </div>
+          <p className="text-sm text-gray-400 ml-8">
+            Go to Supabase dashboard, create a new project, wait for it to finish provisioning.
+          </p>
+        </div>
+
+        <div className="p-5 rounded-2xl border border-white/10 bg-white/[0.03]">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold flex items-center justify-center">2</span>
+            <h4 className="font-semibold">Copy API keys and URL</h4>
+          </div>
+          <p className="text-sm text-gray-400 ml-8 mb-2">
+            In Supabase: Project Settings → API.
+          </p>
+          <ul className="ml-12 list-disc text-sm text-gray-400 space-y-1">
+            <li>Project URL</li>
+            <li>anon/public key</li>
+            <li>service_role key (keep secret)</li>
+          </ul>
+        </div>
+
+        <div className="p-5 rounded-2xl border border-white/10 bg-white/[0.03]">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold flex items-center justify-center">3</span>
+            <h4 className="font-semibold">Run initialization SQL script</h4>
+          </div>
+          <p className="text-sm text-gray-400 ml-8 mb-3">
+            Open Supabase SQL Editor, paste the script below, and run it.
+          </p>
+
+          <div className="ml-8 rounded-xl border border-white/10 bg-[#080808] overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+              <span className="text-xs text-gray-400">ASEA Supabase init script</span>
+              <button
+                onClick={copyScript}
+                disabled={!initScript}
+                className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-white/15 text-gray-200 hover:bg-white/10 disabled:opacity-50"
+              >
+                {scriptCopied ? <Check size={12} /> : <Terminal size={12} />}
+                {scriptCopied ? 'Copied' : 'Copy Script'}
+              </button>
+            </div>
+            <pre className="max-h-72 overflow-auto p-3 text-[11px] leading-relaxed text-gray-300 whitespace-pre-wrap">
+              {loadingScript ? 'Loading script...' : (initScript || 'Script not available. Ensure supabasescript.txt exists in project root.')}
+            </pre>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl border border-white/10 bg-white/[0.03]">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold flex items-center justify-center">4</span>
+            <h4 className="font-semibold">Connect keys below and verify</h4>
+          </div>
+          <p className="text-sm text-gray-400 ml-8">
+            Fill credentials and click Test Connection. Then run migrations.
+          </p>
+        </div>
+      </div>
 
       {step >= 1 && (
         <div className="space-y-4 mb-6">
