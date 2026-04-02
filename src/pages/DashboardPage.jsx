@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { projectsService } from '@/services/projects.service';
 import { Button, Badge, Spinner } from '@/components/common';
 import useProjectsStore from '@/store/projects.store';
+import toast from 'react-hot-toast';
 
 const statusVariant = {
   draft: 'default',
@@ -13,6 +14,26 @@ const statusVariant = {
 };
 
 function ProjectCard({ project }) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadProject = async () => {
+    setDownloading(true);
+    try {
+      const res = await projectsService.download(project.id);
+      const blob = new Blob([res.data], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name || 'project'}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Failed to download project zip');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="group rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-white/20 transition-all">
       {/* Thumbnail placeholder */}
@@ -43,8 +64,12 @@ function ProjectCard({ project }) {
         >
           <Code2 size={12} /> Code
         </Link>
-        <button className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10">
-          <Download size={12} /> Download
+        <button
+          onClick={handleDownloadProject}
+          disabled={downloading}
+          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <Download size={12} /> {downloading ? 'Downloading...' : 'Download'}
         </button>
         <button className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 ml-auto">
           <Trash2 size={12} />

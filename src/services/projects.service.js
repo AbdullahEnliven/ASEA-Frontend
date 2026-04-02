@@ -1,5 +1,7 @@
 import api from './api';
 
+const normalizeFileId = (fileId) => encodeURIComponent(String(fileId || '').replace(/^\/+/, ''));
+
 export const projectsService = {
   list: (params) => api.get('/projects', { params }),
 
@@ -28,10 +30,10 @@ export const projectsService = {
   getFiles: (id) => api.get(`/projects/${encodeURIComponent(id)}/files`),
 
   getFile: (id, fileId) =>
-    api.get(`/projects/${encodeURIComponent(id)}/files/${encodeURIComponent(fileId)}`),
+    api.get(`/projects/${encodeURIComponent(id)}/files/${normalizeFileId(fileId)}`),
 
   updateFile: (id, fileId, content) =>
-    api.patch(`/projects/${encodeURIComponent(id)}/files/${encodeURIComponent(fileId)}`, { content }),
+    api.patch(`/projects/${encodeURIComponent(id)}/files/${normalizeFileId(fileId)}`, { content }),
 
   enhanceRequirements: (text) =>
     api.post('/projects/enhance-requirements', { text }),

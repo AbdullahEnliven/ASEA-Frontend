@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Monitor,
@@ -22,7 +22,12 @@ import {
   Sparkles,
   RefreshCw,
   MoreHorizontal,
-  ChevronDown
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  File as FileIcon,
+  ExternalLink,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Editor from '@monaco-editor/react';
@@ -48,12 +53,53 @@ function BuilderToolbar() {
     setViewMode,
   } = useBuilderStore();
   const activeProject = useProjectsStore((s) => s.activeProject);
+  const [downloading, setDownloading] = useState(false);
+  const [deploying, setDeploying] = useState(false);
+  const [deployedUrl, setDeployedUrl] = useState('');
 
   const devices = [
     { mode: 'desktop', icon: Monitor },
     { mode: 'tablet', icon: Tablet },
     { mode: 'mobile', icon: Smartphone },
   ];
+
+  const handleDownloadCode = async () => {
+    if (!activeProject?.id) return;
+    setDownloading(true);
+    try {
+      const res = await projectsService.download(activeProject.id);
+      const blob = new Blob([res.data], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activeProject.name || 'project'}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Download started');
+    } catch {
+      toast.error('Failed to download code');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleDeploy = async () => {
+    if (!activeProject?.id) return;
+    setDeploying(true);
+    try {
+      const res = await projectsService.deploy(activeProject.id);
+      const url = res.data?.url || '';
+      setDeployedUrl(url);
+      toast.success('Deployed successfully');
+      if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    } catch {
+      toast.error('Failed to deploy');
+    } finally {
+      setDeploying(false);
+    }
+  };
 
   return (
     <div className="flex items-center justify-between h-14 px-4 border-b border-white/10 bg-[#0e0e0e] text-white">
@@ -111,6 +157,14 @@ function BuilderToolbar() {
       </div>
 
       <div className="flex items-center gap-3">
+        <button
+          onClick={handleDownloadCode}
+          disabled={downloading}
+          className="text-gray-400 hover:text-white text-xs font-medium flex items-center gap-1.5 px-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <Download size={14} />
+          {downloading ? 'Downloading...' : 'Download Code'}
+        </button>
         <button className="text-gray-400 hover:text-white text-xs font-medium flex items-center gap-1.5 px-2">
           Share
         </button>
@@ -120,21 +174,30 @@ function BuilderToolbar() {
         <Button variant="secondary" size="sm" className="bg-[#1a1a1a] border-white/10 text-white hover:bg-[#2a2a2a]">
           <Rocket size={13} className="text-purple-400" /> Upgrade
         </Button>
-        <Button 
-          size="sm" 
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-          onClick={async () => {
-             if(!activeProject) return;
-             try {
-                const res = await projectsService.deploy(activeProject.id);
-                toast.success(res.data?.message || 'Deployed seamlessly!');
-             } catch(e) {
-                toast.error('Failed to deploy');
-             }
-          }}
-        >
-          Publish
-        </Button>
+        <div className="flex flex-col items-end gap-1">
+          <Button
+            size="sm"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_18px_rgba(16,185,129,0.25)] border border-emerald-500/40"
+            onClick={handleDeploy}
+            loading={deploying}
+          >
+            <ExternalLink size={13} />
+            {deploying ? 'Deploying...' : 'Deploy'}
+          </Button>
+          {deployedUrl ? (
+            <a
+              href={deployedUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="max-w-[240px] truncate text-[11px] text-emerald-400 hover:text-emerald-300 underline underline-offset-2"
+              title={deployedUrl}
+            >
+              Live: {deployedUrl}
+            </a>
+          ) : (
+            <span className="text-[11px] text-gray-500">URL will appear here after deploy</span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -753,22 +816,248 @@ const RotateCw = ({size, className}) => <svg xmlns="http://www.w3.org/2000/svg" 
 // --- Monaco Code Viewer -------------------------------
 function CodeViewerPane() {
   const activeProject = useProjectsStore((s) => s.activeProject);
-  const [fileContent, setFileContent] = useState('// Generating standard template logic');
+  const updateProjectFile = useProjectsStore((s) => s.updateProjectFile);
+  const [files, setFiles] = useState([]);
+  const [activeFilePath, setActiveFilePath] = useState('');
+  const [fileContent, setFileContent] = useState('');
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [expandedDirs, setExpandedDirs] = useState({
+    src: true,
+    public: true,
+  });
+  const activeFileRequestRef = useRef(0);
+  const activeFilePathRef = useRef('');
+
+  const normalizePath = useCallback((value = '') => String(value).replace(/\\/g, '/').replace(/^\/+/, ''), []);
+
+  const getLanguage = (path = '') => {
+    const ext = path.split('.').pop()?.toLowerCase() || '';
+    const map = {
+      js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript',
+      css: 'css', html: 'html', json: 'json', md: 'markdown', py: 'python',
+    };
+    return map[ext] || 'plaintext';
+  };
+
+  const loadFileContent = useCallback(async (filePath) => {
+    if (!activeProject?.id || !filePath) return;
+    const requestId = activeFileRequestRef.current + 1;
+    activeFileRequestRef.current = requestId;
+    activeFilePathRef.current = filePath;
+    setActiveFilePath(filePath);
+    setLoadingContent(true);
+    try {
+      const res = await projectsService.getFile(activeProject.id, filePath);
+      if (activeFileRequestRef.current !== requestId) return;
+      setFileContent(res.data?.content || '');
+      setDirty(false);
+    } catch {
+      if (activeFileRequestRef.current !== requestId) return;
+      setFileContent('// Could not load selected file');
+      toast.error('Failed to load file content');
+    } finally {
+      if (activeFileRequestRef.current !== requestId) return;
+      setLoadingContent(false);
+    }
+  }, [activeProject?.id]);
+
+  const loadFiles = useCallback(async () => {
+    if (!activeProject?.id) return;
+    setLoadingFiles(true);
+    try {
+      const res = await projectsService.getFiles(activeProject.id);
+      const list = (res.data?.files || []).map((f) => ({ ...f, path: normalizePath(f.path || '') }));
+      setFiles(list);
+      if (activeFilePathRef.current && !list.some((f) => f.path === activeFilePathRef.current)) {
+        activeFilePathRef.current = '';
+        setActiveFilePath('');
+        setFileContent('');
+      } else if (list.length === 0) {
+        activeFilePathRef.current = '';
+        setActiveFilePath('');
+        setFileContent('// No files found for this project');
+      }
+    } catch {
+      toast.error('Failed to load project files');
+      setFiles([]);
+      activeFilePathRef.current = '';
+      setActiveFilePath('');
+      setFileContent('// Failed to load files');
+    } finally {
+      setLoadingFiles(false);
+    }
+  }, [activeProject?.id, normalizePath]);
+
+  useEffect(() => {
+    loadFiles();
+  }, [loadFiles]);
+
+  const handleSave = useCallback(async () => {
+    if (!activeProject?.id || !activeFilePath || !dirty) return;
+    setSaving(true);
+    try {
+      await projectsService.updateFile(activeProject.id, activeFilePath, fileContent);
+      updateProjectFile(activeProject.id, activeFilePath, fileContent);
+      setDirty(false);
+      toast.success('Saved');
+    } catch {
+      toast.error('Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }, [activeProject?.id, activeFilePath, dirty, fileContent, updateProjectFile]);
+
+  const tree = useMemo(() => {
+    const root = { dirs: {}, files: [] };
+
+    files.forEach((file) => {
+      const fullPath = normalizePath(file.path);
+      if (!fullPath) return;
+
+      const parts = fullPath.split('/').filter(Boolean);
+      let current = root;
+      let currentDirPath = '';
+
+      parts.forEach((part, idx) => {
+        const isLast = idx === parts.length - 1;
+
+        if (isLast) {
+          current.files.push({ name: part, path: fullPath });
+        } else {
+          currentDirPath = currentDirPath ? `${currentDirPath}/${part}` : part;
+          if (!current.dirs[part]) {
+            current.dirs[part] = {
+              name: part,
+              path: currentDirPath,
+              dirs: {},
+              files: [],
+            };
+          }
+          current = current.dirs[part];
+        }
+      });
+    });
+
+    return root;
+  }, [files, normalizePath]);
+
+  const toggleDir = (path) => {
+    setExpandedDirs((prev) => ({ ...prev, [path]: !prev[path] }));
+  };
+
+  const renderTree = (node, depth = 0) => {
+    const dirEntries = Object.values(node.dirs).sort((a, b) => a.name.localeCompare(b.name));
+    const fileEntries = [...node.files].sort((a, b) => a.name.localeCompare(b.name));
+
+    return (
+      <>
+        {dirEntries.map((dir) => {
+          const isOpen = expandedDirs[dir.path] ?? false;
+          return (
+            <div key={dir.path}>
+              <button
+                onClick={() => toggleDir(dir.path)}
+                className="w-full flex items-center gap-1.5 px-2 py-1 rounded text-xs text-gray-300 hover:bg-white/5"
+                style={{ paddingLeft: `${8 + depth * 14}px` }}
+              >
+                {isOpen ? (
+                  <ChevronDown size={12} className="text-gray-500 shrink-0" />
+                ) : (
+                  <ChevronRight size={12} className="text-gray-500 shrink-0" />
+                )}
+                {isOpen ? (
+                  <FolderOpen size={13} className="text-amber-400 shrink-0" />
+                ) : (
+                  <Folder size={13} className="text-amber-400 shrink-0" />
+                )}
+                <span className="truncate">{dir.name}</span>
+              </button>
+              {isOpen && renderTree(dir, depth + 1)}
+            </div>
+          );
+        })}
+
+        {fileEntries.map((file) => {
+          const isSelected = file.path === activeFilePath;
+          return (
+            <button
+              key={file.path}
+              onClick={() => loadFileContent(file.path)}
+              className={`w-full flex items-center gap-1.5 px-2 py-1 rounded text-xs truncate transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-300' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+              style={{ paddingLeft: `${24 + depth * 14}px` }}
+              title={file.path}
+            >
+              <FileIcon size={12} className="shrink-0" />
+              <span className="truncate">{file.name}</span>
+            </button>
+          );
+        })}
+      </>
+    );
+  };
 
   return (
     <div className="flex-1 flex overflow-hidden bg-[#111] p-4">
-      <div className="flex-1 border border-white/10 rounded-xl overflow-hidden bg-[#0e0e0e]">
+      <div className="w-72 border border-white/10 rounded-xl overflow-hidden bg-[#0d0d0d] mr-4 flex flex-col">
+        <div className="h-11 px-3 border-b border-white/10 flex items-center justify-between">
+          <span className="text-xs uppercase tracking-wide text-gray-400">Explorer</span>
+          <button
+            onClick={loadFiles}
+            className="text-xs text-gray-400 hover:text-white flex items-center gap-1"
+            disabled={loadingFiles}
+          >
+            <RefreshCw size={12} className={loadingFiles ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2">
+          {files.length === 0 ? (
+            <p className="text-xs text-gray-500 px-2 py-3">No files available</p>
+          ) : (
+            renderTree(tree)
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 border border-white/10 rounded-xl overflow-hidden bg-[#0e0e0e] flex flex-col">
+        <div className="h-11 px-3 border-b border-white/10 flex items-center justify-between gap-3">
+          <span className="text-xs text-gray-400 truncate">{activeFilePath || 'No file selected'}</span>
+          <button
+            onClick={handleSave}
+            disabled={!dirty || saving}
+            className="px-3 py-1 text-xs rounded-md bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+        <div className="flex-1 relative">
+          {loadingContent && (
+            <div className="absolute inset-0 z-10 bg-[#0e0e0e]/80 flex items-center justify-center">
+              <Loader2 size={18} className="animate-spin text-blue-400" />
+            </div>
+          )}
         <Editor
             height="100%"
-            language="javascript"
+            language={getLanguage(activeFilePath)}
             value={fileContent}
+            onChange={(value) => {
+              setFileContent(value || '');
+              setDirty(true);
+            }}
             theme="vs-dark"
             options={{
-              readOnly: true,
+              readOnly: false,
               fontSize: 13,
-              minimap: { enabled: false },
+              minimap: { enabled: true },
+              automaticLayout: true,
+              scrollBeyondLastLine: false,
+              fontFamily: '"Fira Code", "JetBrains Mono", monospace',
             }}
           />
+        </div>
       </div>
     </div>
   );
