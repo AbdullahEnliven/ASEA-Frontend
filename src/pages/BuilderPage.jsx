@@ -39,6 +39,7 @@ import useBuilderStore from '@/store/builder.store';
 import useProjectsStore from '@/store/projects.store';
 import { projectsService } from '@/services/projects.service';
 import { integrationsService } from '@/services/integrations.service';
+import useAuthStore from '@/store/auth.store';
 import { DEVICE_WIDTHS } from '@/constants';
 import { Button } from '@/components/common';
 import toast from 'react-hot-toast';
@@ -695,6 +696,7 @@ function InlineEditor({ activeEdit, onClose, onSave }) {
 function LivePreview({ deployedUrl }) {
   const { deviceMode, activePage, editMode } = useBuilderStore();
   const activeProject = useProjectsStore((s) => s.activeProject);
+  const token = useAuthStore((s) => s.token);
   const iframeRef = useRef(null);
   const [html, setHtml] = useState('');
   const [loading, setLoading] = useState(false);
@@ -702,6 +704,7 @@ function LivePreview({ deployedUrl }) {
   const [activeEdit, setActiveEdit] = useState(null);
   const debounceRef = useRef(null);
   const refreshRef = useRef(null);
+  const [previewNonce, setPreviewNonce] = useState(0);
 
   const getEditableHtml = useCallback(
     (rawHtml) => {
@@ -730,13 +733,28 @@ function LivePreview({ deployedUrl }) {
 
   const loadPreview = useCallback(() => {
     if (!activeProject?.id) return;
+
+    if (!editMode) {
+      if (!token) {
+        setError('Waiting for session. Please reload preview.');
+        setLoading(false);
+        return;
+      }
+      setError(null);
+      setLoading(true);
+      setPreviewNonce((v) => v + 1);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     projectsService.getPreview(activeProject.id, activePage)
       .then((res) => {
         const raw = typeof res.data === 'string' ? res.data : res.data.html || '';
         setHtml(raw);
       })
       .catch(() => {
+        setError('Could not load preview');
         // mock fallback for styling purposes if backend fails
         setHtml(`<div style="font-family:sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#333;background:#fafafa;">
           <h1 style="font-size:3rem;margin-bottom:1rem;color:#111;">System 01</h1>
@@ -744,7 +762,17 @@ function LivePreview({ deployedUrl }) {
         </div>`);    
       })
       .finally(() => setLoading(false));
-  }, [activeProject?.id, activePage]);
+  }, [activeProject?.id, activePage, editMode, token]);
+
+  const previewSrc = useMemo(() => {
+    if (!activeProject?.id || !token) return '';
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+    const apiOrigin = apiBase.replace(/\/api\/v1\/?$/, '');
+    const page = encodeURIComponent(activePage || 'home');
+    const projectId = encodeURIComponent(activeProject.id);
+    const previewToken = encodeURIComponent(token);
+    return `${apiOrigin}/api/v1/projects/${projectId}/preview-public/${page}?preview_token=${previewToken}&_r=${previewNonce}`;
+  }, [activeProject?.id, activePage, token, previewNonce]);
 
   useEffect(() => { loadPreview(); }, [loadPreview]);
 
@@ -843,13 +871,36 @@ function LivePreview({ deployedUrl }) {
           </div>
         ) : (
           <div className="flex-1 bg-white flex justify-center w-full h-full p-0 relative min-h-0">
-             <iframe
-                ref={iframeRef}
-                srcDoc={getEditableHtml(html)}
-                title="Store Preview"
-                className="w-full h-full border-0 absolute inset-0"
-                sandbox="allow-scripts allow-same-origin"
-              />
+             {editMode ? (
+               <iframe
+                  ref={iframeRef}
+                  srcDoc={getEditableHtml(html)}
+                  title="Store Preview"
+                  className="w-full h-full border-0 absolute inset-0"
+                  sandbox="allow-scripts allow-same-origin"
+                  onLoad={() => setLoading(false)}
+               />
+             ) : (
+               <iframe
+                  key={previewNonce}
+                  ref={iframeRef}
+                  src={previewSrc}
+                  title="Store Preview"
+                  className="w-full h-full border-0 absolute inset-0"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                  onLoad={() => setLoading(false)}
+                  onError={() => {
+                    setError('Failed to render preview');
+                    setLoading(false);
+                  }}
+               />
+             )}
+
+             {error ? (
+               <div className="absolute bottom-3 left-3 right-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700">
+                 {error}
+               </div>
+             ) : null}
           </div>
         )}
       </div>
