@@ -57,6 +57,9 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
   const activeProject = useProjectsStore((s) => s.activeProject);
   const [downloading, setDownloading] = useState(false);
   const [deploying, setDeploying] = useState(false);
+  const [deployModalOpen, setDeployModalOpen] = useState(false);
+  const [customSubdomain, setCustomSubdomain] = useState('');
+  const [subdomainError, setSubdomainError] = useState('');
   const [supabaseConnected, setSupabaseConnected] = useState(true);
   const [checkingSupabase, setCheckingSupabase] = useState(false);
 
@@ -65,6 +68,26 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
     { mode: 'tablet', icon: Tablet },
     { mode: 'mobile', icon: Smartphone },
   ];
+
+  const sanitizeSubdomain = useCallback((value = '') => {
+    const plainValue = String(value)
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .split('/')[0]
+      .split('.')[0];
+    return plainValue
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }, []);
+
+  useEffect(() => {
+    if (!activeProject?.name) return;
+    setCustomSubdomain((current) => {
+      if (current.trim()) return current;
+      return sanitizeSubdomain(activeProject.name) || 'my-store';
+    });
+  }, [activeProject?.name, sanitizeSubdomain]);
 
   useEffect(() => {
     if (!activeProject?.id) return;
@@ -111,11 +134,22 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
 
   const handleDeploy = async () => {
     if (!activeProject?.id) return;
+    const sanitized =
+      sanitizeSubdomain(customSubdomain) ||
+      sanitizeSubdomain(activeProject?.name || '') ||
+      `store-${String(activeProject.id).slice(0, 6)}`;
+    if (!sanitized || sanitized.length < 3) {
+      setSubdomainError('Please enter at least 3 characters (letters, numbers, hyphens).');
+      return;
+    }
+
     setDeploying(true);
+    setSubdomainError('');
     try {
-      const res = await projectsService.deploy(activeProject.id);
+      const res = await integrationsService.deployProductionToVercel(activeProject.id, { subdomain: sanitized });
       const url = res.data?.url || '';
       setDeployedUrl(url);
+      setDeployModalOpen(false);
       toast.success('Deployed successfully');
       if (url) {
         window.open(url, '_blank', 'noopener,noreferrer');
@@ -214,7 +248,10 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
           <Button
             size="sm"
             className="bg-white text-black border border-gray-300 hover:bg-gray-100"
-            onClick={handleDeploy}
+            onClick={() => {
+              setSubdomainError('');
+              setDeployModalOpen(true);
+            }}
             loading={deploying}
           >
             <Rocket size={13} />
@@ -222,6 +259,66 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
           </Button>
         </div>
       </div>
+
+      {deployModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => {
+              if (!deploying) setDeployModalOpen(false);
+            }}
+          />
+          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#111] p-5 shadow-2xl">
+            <h3 className="text-base font-semibold text-white">Choose your custom URL</h3>
+            <p className="mt-1 text-xs text-gray-400">
+              Pick a Vercel subdomain. If left empty, we use your store name.
+            </p>
+
+            <div className="mt-4 rounded-xl border border-white/10 bg-[#0b0b0b] flex items-center overflow-hidden">
+              <input
+                value={customSubdomain}
+                onChange={(e) => {
+                  setCustomSubdomain(sanitizeSubdomain(e.target.value));
+                  setSubdomainError('');
+                }}
+                placeholder="my-awesome-store"
+                className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white outline-none"
+                disabled={deploying}
+              />
+              <span className="px-3 py-2.5 text-xs text-gray-500 border-l border-white/10">.vercel.app</span>
+            </div>
+
+            {!customSubdomain.trim() && (
+              <p className="mt-2 text-xs text-gray-500">
+                Using: {(sanitizeSubdomain(activeProject?.name || '') || `store-${String(activeProject?.id || '').slice(0, 6)}`)}.vercel.app
+              </p>
+            )}
+
+            {subdomainError && <p className="mt-2 text-xs text-red-400">{subdomainError}</p>}
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-[#1a1a1a] border-white/10 text-white hover:bg-[#242424]"
+                onClick={() => setDeployModalOpen(false)}
+                disabled={deploying}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="bg-white text-black border border-gray-300 hover:bg-gray-100"
+                onClick={handleDeploy}
+                loading={deploying}
+              >
+                <Rocket size={13} />
+                {deploying ? 'Deploying...' : 'Deploy now'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -702,6 +799,7 @@ function LivePreview({ deployedUrl }) {
   const [activeEdit, setActiveEdit] = useState(null);
   const debounceRef = useRef(null);
   const refreshRef = useRef(null);
+  const hasDeployedUrl = Boolean(deployedUrl);
 
   const getEditableHtml = useCallback(
     (rawHtml) => {
@@ -809,10 +907,10 @@ function LivePreview({ deployedUrl }) {
            </div>
            
            <div className="mx-auto flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md text-[11px] text-gray-600 font-mono flex-1 max-w-sm justify-center">
-             <span className="truncate" title={deployedUrl || `https://${activeProject?.name?.toLowerCase().replace(/\s/g, '-') || 'preview'}.asea.dev`}>
-               {deployedUrl || `https://${activeProject?.name?.toLowerCase().replace(/\s/g, '-') || 'preview'}.asea.dev`}
+             <span className="truncate" title={hasDeployedUrl ? deployedUrl : 'Not deployed yet'}>
+               {hasDeployedUrl ? deployedUrl : 'Not deployed yet'}
              </span>
-             {deployedUrl ? (
+             {hasDeployedUrl ? (
                <a
                  href={deployedUrl}
                  target="_blank"
@@ -1133,6 +1231,27 @@ export default function BuilderPage() {
 
     return () => reset();
   }, [id, setActiveProject, reset]);
+
+  useEffect(() => {
+    if (!id) return;
+    let mounted = true;
+
+    integrationsService
+      .getVercelStatus(id)
+      .then((res) => {
+        if (!mounted) return;
+        const persistedUrl = res.data?.production_url || res.data?.preview_url || '';
+        setDeployedUrl(persistedUrl);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setDeployedUrl('');
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0a] overflow-hidden">
