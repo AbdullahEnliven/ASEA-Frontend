@@ -11,6 +11,7 @@ import { integrationsService } from '@/services/integrations.service';
 // ─── Cloud Deploy Tab ───────────────────────────────────
 function CloudDeployTab({ projectId }) {
   const [subdomain, setSubdomain] = useState('');
+  const [target, setTarget] = useState('production');
   const [deploying, setDeploying] = useState(false);
   const [step, setStep] = useState(0); // 0 = setup, 1 = deploy, 2 = success
   const [logs, setLogs] = useState([]);
@@ -62,11 +63,11 @@ function CloudDeployTab({ projectId }) {
     setLogs(['Initiating deployment sequence...', 'Allocating Edge resources...', 'Pulling latest code artifacts...']);
     
     try {
-      const res = await integrationsService.deployToCloud(projectId, { subdomain });
+      const res = await integrationsService.deployToCloud(projectId, { subdomain, target });
       setDeployedUrl(res.data.url);
       setLogs((prev) => [...prev, 'Deployment successful!', `Live at: ${res.data.url}`]);
       setStep(2);
-      toast.success('Successfully deployed to ASEA Cloud!');
+      toast.success(`Successfully deployed ${target} build to Vercel!`);
     } catch (e) {
       const errMessage = e.response?.data?.detail || 'Deployment failed';
       toast.error(errMessage);
@@ -85,9 +86,9 @@ function CloudDeployTab({ projectId }) {
             <div className="w-16 h-16 rounded-2xl border border-blue-500/20 bg-blue-500/10 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(59,130,246,0.1)]">
               <Cloud size={28} className="text-blue-400" />
             </div>
-            <h3 className="text-xl font-bold mb-2">Deploy to ASEA Edge</h3>
+            <h3 className="text-xl font-bold mb-2">Deploy to Vercel</h3>
             <p className="text-gray-400 text-sm max-w-md mx-auto">
-              Instantly deploy your store to our global edge network. Get a live, production-ready URL instantly.
+              Deploy every generated project to your connected Vercel account for preview and production URLs.
             </p>
           </div>
 
@@ -114,8 +115,27 @@ function CloudDeployTab({ projectId }) {
               <p className="mt-2 text-xs text-gray-500">Only lowercase letters, numbers, and hyphens.</p>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                size="lg"
+                variant={target === 'preview' ? 'primary' : 'ghost'}
+                className="w-full"
+                onClick={() => setTarget('preview')}
+              >
+                Preview
+              </Button>
+              <Button
+                size="lg"
+                variant={target === 'production' ? 'primary' : 'ghost'}
+                className="w-full"
+                onClick={() => setTarget('production')}
+              >
+                Production
+              </Button>
+            </div>
+
             <Button size="lg" className="w-full" onClick={handleDeploy}>
-              <Cloud size={16} /> Deploy to Edge
+              <Cloud size={16} /> Deploy to Vercel ({target})
             </Button>
           </div>
         </div>
@@ -129,7 +149,7 @@ function CloudDeployTab({ projectId }) {
               <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full"></div>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white tracking-tight">Deploying to ASEA Edge...</h3>
+              <h3 className="text-lg font-bold text-white tracking-tight">Deploying to Vercel ({target})...</h3>
               <p className="text-sm text-blue-200/60 font-medium">Please do not close this window</p>
             </div>
           </div>
@@ -178,7 +198,7 @@ function CloudDeployTab({ projectId }) {
           </div>
           <h3 className="text-3xl font-bold mb-3 text-center text-white tracking-tight">You're Live!</h3>
           <p className="text-gray-400 text-center mb-8 text-sm">
-            Your store has been successfully deployed to our edge network and is now globally available.
+            Your store has been successfully deployed to Vercel.
           </p>
 
           <div className="p-5 rounded-2xl border border-emerald-500/30 bg-[#050505] mb-8 text-center shadow-[0_10px_30px_-10px_rgba(16,185,129,0.15)] relative overflow-hidden group hover:border-emerald-500/50 transition-colors">

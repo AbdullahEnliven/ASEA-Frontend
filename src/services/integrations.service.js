@@ -30,4 +30,14 @@ export const integrationsService = {
   // Cloud Deploy
   deployToCloud: (projectId, config) => 
     api.post(`/projects/${encodeURIComponent(projectId)}/integrations/deploy`, config),
+
+  // Vercel
+  getVercelStatus: (projectId) =>
+    api.get(`/projects/${encodeURIComponent(projectId)}/integrations/vercel/status`),
+
+  deployPreviewToVercel: (projectId, config = {}) =>
+    api.post(`/projects/${encodeURIComponent(projectId)}/integrations/vercel/preview`, config),
+
+  deployProductionToVercel: (projectId, config = {}) =>
+    api.post(`/projects/${encodeURIComponent(projectId)}/integrations/vercel/deploy`, config),
 };

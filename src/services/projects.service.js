@@ -56,6 +56,15 @@ export const projectsService = {
   supabaseTest: (id, credentials) =>
     api.post(`/projects/${encodeURIComponent(id)}/integrations/supabase/test`, credentials),
   
-  deploy: (id) =>
-    api.post(`/projects/${encodeURIComponent(id)}/integrations/deploy`),
+  deploy: (id, config = {}) =>
+    api.post(`/projects/${encodeURIComponent(id)}/integrations/deploy`, {
+      target: config.target || 'production',
+      subdomain: config.subdomain,
+    }),
+
+  deployPreview: (id, config = {}) =>
+    api.post(`/projects/${encodeURIComponent(id)}/integrations/deploy`, {
+      target: 'preview',
+      subdomain: config.subdomain,
+    }),
 };
