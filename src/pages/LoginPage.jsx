@@ -48,16 +48,30 @@ export default function LoginPage() {
   };
 
   const handleOAuth = (provider) => {
-    const clientId =
-      provider === 'google'
-        ? import.meta.env.VITE_GOOGLE_CLIENT_ID
-        : import.meta.env.VITE_GITHUB_CLIENT_ID;
-    if (!clientId) {
-      toast.error(`${provider} login is not configured`);
+    if (provider !== 'github') {
+      toast.error(`${provider} login is not available yet`);
       return;
     }
-    // OAuth redirect would go here
-    toast(`${provider} OAuth not yet connected`);
+
+    setLoading(true);
+    authService
+      .getGithubOAuthUrl('login')
+      .then((res) => {
+        const authUrl = res.data?.auth_url;
+        if (!authUrl) throw new Error('Missing authorization URL');
+        window.location.assign(authUrl);
+      })
+      .catch(() => {
+        setLoading(false);
+        toast.error('GitHub login is not configured');
+      });
+  };
+
+  const handleGithubOAuth = () => {
+    if (loading) {
+      return;
+    }
+    handleOAuth('github');
   };
 
   return (
@@ -129,7 +143,8 @@ export default function LoginPage() {
           <Button
             variant="secondary"
             className="flex-1"
-            onClick={() => handleOAuth('github')}
+            onClick={handleGithubOAuth}
+            disabled={loading}
           >
             GitHub
           </Button>

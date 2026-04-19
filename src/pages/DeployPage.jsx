@@ -511,11 +511,76 @@ function GithubTab({ projectId }) {
     isPrivate: true,
     branch: 'main',
     commitMessage: 'Initial commit from ASEA',
+    owner: '',
   });
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [connected, setConnected] = useState(false);
+  const [githubUser, setGithubUser] = useState('');
+  const [orgs, setOrgs] = useState([]);
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [repoUrl, setRepoUrl] = useState(null);
 
+  const refreshGithubStatus = async () => {
+    setLoadingStatus(true);
+    try {
+      const res = await integrationsService.getGithubStatus(projectId);
+      const isConnected = Boolean(res.data?.connected);
+      const username = res.data?.username || '';
+      setConnected(isConnected);
+      setGithubUser(username);
+      if (isConnected && username) {
+        setConfig((prev) => ({ ...prev, owner: prev.owner || username }));
+      }
+    } catch {
+      setConnected(false);
+      setGithubUser('');
+    } finally {
+      setLoadingStatus(false);
+    }
+  };
+
+  const loadOrgs = async () => {
+    setLoadingOrgs(true);
+    try {
+      const res = await integrationsService.getGithubOrgs(projectId);
+      setOrgs(Array.isArray(res.data?.orgs) ? res.data.orgs : []);
+    } catch {
+      setOrgs([]);
+    } finally {
+      setLoadingOrgs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!projectId) return;
+    refreshGithubStatus();
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!connected || !projectId) return;
+    loadOrgs();
+  }, [connected, projectId]);
+
+  const connectGithub = async () => {
+    setConnecting(true);
+    try {
+      const res = await integrationsService.getGithubOauthUrl(projectId);
+      const authUrl = res.data?.auth_url;
+      if (!authUrl) throw new Error('Missing authorization URL');
+      window.location.assign(authUrl);
+    } catch {
+      toast.error('Failed to start GitHub OAuth');
+      setConnecting(false);
+    }
+  };
+
   const pushToGithub = async () => {
+    if (!connected) {
+      toast.error('Connect your GitHub account first');
+      return;
+    }
     if (!config.repoName.trim()) {
       toast.error('Repository name is required');
       return;
@@ -525,8 +590,8 @@ function GithubTab({ projectId }) {
       const res = await integrationsService.pushToGithub(projectId, config);
       setRepoUrl(res.data.url);
       toast.success('Pushed to GitHub!');
-    } catch {
-      toast.error('Push failed');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Push failed');
     } finally {
       setPushing(false);
     }
@@ -541,6 +606,23 @@ function GithubTab({ projectId }) {
       <p className="text-sm text-gray-400 mb-8 text-center">
         Create a new repository and push your generated store.
       </p>
+
+      {loadingStatus ? (
+        <div className="mb-6 p-3 rounded-xl border border-white/10 bg-white/5 text-sm text-gray-300 flex items-center justify-center gap-2">
+          <Loader2 size={14} className="animate-spin" /> Checking GitHub connection...
+        </div>
+      ) : connected ? (
+        <div className="mb-6 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-sm text-emerald-300 flex items-center justify-center gap-2">
+          <Check size={14} /> Connected as @{githubUser}
+        </div>
+      ) : (
+        <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-sm text-amber-200">
+          <p className="mb-3">Sign in with GitHub to create repositories from your project.</p>
+          <Button className="w-full" onClick={connectGithub} loading={connecting}>
+            <Github size={16} /> Sign in with GitHub
+          </Button>
+        </div>
+      )}
 
       {repoUrl ? (
         <div className="text-center space-y-4">
@@ -563,7 +645,29 @@ function GithubTab({ projectId }) {
             placeholder="my-store"
             value={config.repoName}
             onChange={(e) => setConfig({ ...config, repoName: e.target.value })}
+            disabled={!connected}
           />
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Owner</label>
+            <select
+              value={config.owner}
+              onChange={(e) => setConfig({ ...config, owner: e.target.value })}
+              className="w-full rounded-xl border border-white/10 bg-[#111] px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500/40"
+              disabled={!connected || loadingOrgs}
+            >
+              {githubUser && (
+                <option value={githubUser}>{githubUser} (personal)</option>
+              )}
+              {orgs.map((org) => (
+                <option key={org.id} value={org.login}>
+                  {org.login} (organization)
+                </option>
+              ))}
+            </select>
+            {connected && loadingOrgs && (
+              <p className="mt-1 text-xs text-gray-500">Loading organizations...</p>
+            )}
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1.5">
               Visibility
@@ -571,6 +675,7 @@ function GithubTab({ projectId }) {
             <div className="flex gap-3">
               <button
                 onClick={() => setConfig({ ...config, isPrivate: true })}
+                disabled={!connected}
                 className={`flex-1 px-4 py-2.5 rounded-xl text-sm border transition-colors ${
                   config.isPrivate
                     ? 'border-blue-500/40 bg-blue-500/10 text-blue-400'
@@ -581,6 +686,7 @@ function GithubTab({ projectId }) {
               </button>
               <button
                 onClick={() => setConfig({ ...config, isPrivate: false })}
+                disabled={!connected}
                 className={`flex-1 px-4 py-2.5 rounded-xl text-sm border transition-colors ${
                   !config.isPrivate
                     ? 'border-blue-500/40 bg-blue-500/10 text-blue-400'
@@ -595,13 +701,15 @@ function GithubTab({ projectId }) {
             label="Branch"
             value={config.branch}
             onChange={(e) => setConfig({ ...config, branch: e.target.value })}
+            disabled={!connected}
           />
           <Input
             label="Commit Message"
             value={config.commitMessage}
             onChange={(e) => setConfig({ ...config, commitMessage: e.target.value })}
+            disabled={!connected}
           />
-          <Button className="w-full" onClick={pushToGithub} loading={pushing}>
+          <Button className="w-full" onClick={pushToGithub} loading={pushing} disabled={!connected}>
             <Github size={16} /> Push to GitHub
           </Button>
         </div>

@@ -13,6 +13,7 @@ const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
+const GithubCallbackPage = lazy(() => import('@/pages/GithubCallbackPage'));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
 const NewProjectPage = lazy(() => import('@/pages/NewProjectPage'));
 const BuilderPage = lazy(() => import('@/pages/BuilderPage'));
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
             <Route path="/forgot-password" element={<PageTransition><ForgotPasswordPage /></PageTransition>} />
             <Route path="/reset-password" element={<PageTransition><ResetPasswordPage /></PageTransition>} />
+            <Route path="/auth/github/callback" element={<PageTransition><GithubCallbackPage /></PageTransition>} />
 
             {/* Protected routes with AppShell */}
             <Route

@@ -75,6 +75,20 @@ export default function RegisterPage() {
     }
   };
 
+  const handleGithubSignup = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await authService.getGithubOAuthUrl('register');
+      const authUrl = res.data?.auth_url;
+      if (!authUrl) throw new Error('Missing authorization URL');
+      window.location.assign(authUrl);
+    } catch {
+      setLoading(false);
+      toast.error('GitHub signup is not configured');
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-[#0a0a0a]">
       <div className="w-full max-w-sm">
@@ -172,6 +186,24 @@ export default function RegisterPage() {
             Create Account
           </Button>
         </form>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/10" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-[#0a0a0a] px-3 text-gray-500">or continue with</span>
+          </div>
+        </div>
+
+        <Button
+          variant="secondary"
+          className="w-full"
+          onClick={handleGithubSignup}
+          disabled={loading}
+        >
+          GitHub
+        </Button>
 
         <p className="mt-6 text-center text-sm text-gray-400">
           Already have an account?{' '}

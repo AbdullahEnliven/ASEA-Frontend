@@ -238,9 +238,22 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
         <button className="text-gray-400 hover:text-white text-xs font-medium flex items-center gap-1.5 px-2">
           Share
         </button>
-        <button className="text-gray-400 hover:text-white text-xs font-medium flex items-center gap-1.5 px-2">
-          GitHub
-        </button>
+        {activeProject?.id ? (
+          <Link
+            to={`/projects/${activeProject.id}/deploy?tab=github`}
+            className="text-gray-400 hover:text-white text-xs font-medium flex items-center gap-1.5 px-2"
+          >
+            GitHub
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="text-gray-500 text-xs font-medium flex items-center gap-1.5 px-2 cursor-not-allowed"
+          >
+            GitHub
+          </button>
+        )}
         <Button variant="secondary" size="sm" className="bg-[#1a1a1a] border-white/10 text-white hover:bg-[#2a2a2a]">
           <Rocket size={13} className="text-purple-400" /> Upgrade
         </Button>

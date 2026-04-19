@@ -18,14 +18,20 @@ export const integrationsService = {
     api.post(`/projects/${encodeURIComponent(projectId)}/integrations/supabase/seed`),
 
   // GitHub
-  getGithubStatus: () => api.get('/integrations/github/status'),
+  getGithubStatus: (projectId) =>
+    api.get(`/projects/${encodeURIComponent(projectId)}/integrations/github/status`),
 
-  connectGithub: (code) => api.post('/integrations/github/connect', { code }),
+  getGithubOauthUrl: (projectId) =>
+    api.get(`/projects/${encodeURIComponent(projectId)}/integrations/github/oauth-url`),
+
+  connectGithub: (projectId, payload) =>
+    api.post(`/projects/${encodeURIComponent(projectId)}/integrations/github/connect`, payload),
 
   pushToGithub: (projectId, config) =>
     api.post(`/projects/${encodeURIComponent(projectId)}/integrations/github/push`, config),
 
-  getGithubOrgs: () => api.get('/integrations/github/orgs'),
+  getGithubOrgs: (projectId) =>
+    api.get(`/projects/${encodeURIComponent(projectId)}/integrations/github/orgs`),
 
   // Cloud Deploy
   deployToCloud: (projectId, config) => 

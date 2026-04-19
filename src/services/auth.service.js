@@ -20,7 +20,13 @@ export const authService = {
 
   loginWithGoogle: (code) => api.post('/auth/oauth/google', { code }),
 
+  getGithubOAuthUrl: (source = 'login') =>
+    api.get(`/auth/oauth/github/url?source=${encodeURIComponent(source)}`),
+
   loginWithGithub: (code) => api.post('/auth/oauth/github', { code }),
+
+  exchangeGithubOAuthCode: (code, state) =>
+    api.post('/auth/oauth/github', { code, state }),
 
   changePassword: (currentPassword, newPassword) =>
     api.post('/auth/change-password', { currentPassword, newPassword }),
