@@ -15,12 +15,20 @@ const statusVariant = {
 
 function ProjectCard({ project }) {
   const [downloading, setDownloading] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const previewUrl = project.thumbnailUrl || project.thumbnail_url || '';
   const createdAtValue = project.createdAt || project.created_at;
   const createdDate = createdAtValue ? new Date(createdAtValue) : null;
   const createdDateLabel = createdDate && !Number.isNaN(createdDate.getTime())
     ? createdDate.toLocaleDateString()
     : 'Unknown date';
+  const initials = (project.name || 'New Store')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'NS';
+  const hasPreviewImage = Boolean(previewUrl) && !imageError;
 
   const handleDownloadProject = async () => {
     setDownloading(true);
@@ -43,15 +51,28 @@ function ProjectCard({ project }) {
   return (
     <div className="group rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-white/20 transition-all">
       <div className="h-36 rounded-xl bg-white/5 mb-4 overflow-hidden flex items-center justify-center text-gray-600 text-sm">
-        {previewUrl ? (
+        {hasPreviewImage ? (
           <img
             src={previewUrl}
             alt={`${project.name} preview`}
             className="h-full w-full object-cover"
             loading="lazy"
+            onError={() => setImageError(true)}
           />
         ) : (
-          'No preview yet'
+          <div className="relative h-full w-full overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-slate-800 via-slate-900 to-zinc-950">
+            <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-cyan-400/15 blur-xl" />
+            <div className="absolute -left-6 -bottom-8 h-24 w-24 rounded-full bg-emerald-400/15 blur-xl" />
+            <div className="relative z-10 flex h-full items-center gap-3 p-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-sm font-semibold text-white">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">{project.name || 'Untitled Project'}</p>
+                <p className="mt-0.5 text-xs text-gray-300">Preview will appear after generation or deployment</p>
+              </div>
+            </div>
+          </div>
         )}
       </div>
       <div className="flex items-start justify-between mb-2">
