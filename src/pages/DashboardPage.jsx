@@ -15,6 +15,12 @@ const statusVariant = {
 
 function ProjectCard({ project }) {
   const [downloading, setDownloading] = useState(false);
+  const previewUrl = project.thumbnailUrl || project.thumbnail_url || '';
+  const createdAtValue = project.createdAt || project.created_at;
+  const createdDate = createdAtValue ? new Date(createdAtValue) : null;
+  const createdDateLabel = createdDate && !Number.isNaN(createdDate.getTime())
+    ? createdDate.toLocaleDateString()
+    : 'Unknown date';
 
   const handleDownloadProject = async () => {
     setDownloading(true);
@@ -36,15 +42,23 @@ function ProjectCard({ project }) {
 
   return (
     <div className="group rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-white/20 transition-all">
-      {/* Thumbnail placeholder */}
-      <div className="h-36 rounded-xl bg-white/5 mb-4 flex items-center justify-center text-gray-600 text-sm">
-        Preview
+      <div className="h-36 rounded-xl bg-white/5 mb-4 overflow-hidden flex items-center justify-center text-gray-600 text-sm">
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt={`${project.name} preview`}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          'No preview yet'
+        )}
       </div>
       <div className="flex items-start justify-between mb-2">
         <div>
           <h3 className="font-semibold text-white">{project.name}</h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            {new Date(project.createdAt).toLocaleDateString()}
+            {createdDateLabel}
           </p>
         </div>
         <Badge variant={statusVariant[project.status] || 'default'}>
@@ -88,7 +102,13 @@ export default function DashboardPage() {
   useEffect(() => {
     projectsService.list()
       .then((res) => {
-         setProjects(res.data.items || res.data || []);
+         const items = res.data.items || res.data || [];
+         const sortedProjects = [...items].sort((a, b) => {
+           const aTime = new Date(a.createdAt ?? a.created_at ?? 0).getTime();
+           const bTime = new Date(b.createdAt ?? b.created_at ?? 0).getTime();
+           return bTime - aTime;
+         });
+         setProjects(sortedProjects);
       })
       .catch((err) => console.error("Failed to load projects", err))
       .finally(() => setLoading(false));

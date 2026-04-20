@@ -83,6 +83,7 @@ export default function App() {
             <Route path="/forgot-password" element={<PageTransition><ForgotPasswordPage /></PageTransition>} />
             <Route path="/reset-password" element={<PageTransition><ResetPasswordPage /></PageTransition>} />
             <Route path="/auth/github/callback" element={<PageTransition><GithubCallbackPage /></PageTransition>} />
+            <Route path="/auth/github-auth/callback" element={<PageTransition><GithubCallbackPage /></PageTransition>} />
 
             {/* Protected routes with AppShell */}
             <Route

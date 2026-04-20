@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -34,9 +34,13 @@ export default function GithubCallbackPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const login = useAuthStore((s) => s.login);
+  const calledRef = useRef(false);
 
   useEffect(() => {
     const finishOAuth = async () => {
+      if (calledRef.current) return;
+      calledRef.current = true;
+
       const error = searchParams.get('error');
       const code = searchParams.get('code');
       const state = searchParams.get('state');
