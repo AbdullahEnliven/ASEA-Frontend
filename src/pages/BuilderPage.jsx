@@ -812,7 +812,6 @@ function LivePreview({ deployedUrl }) {
   const [activeEdit, setActiveEdit] = useState(null);
   const debounceRef = useRef(null);
   const refreshRef = useRef(null);
-  const startupRetryRef = useRef(null);
   const hasDeployedUrl = Boolean(deployedUrl);
 
   const getEditableHtml = useCallback(
@@ -842,16 +841,11 @@ function LivePreview({ deployedUrl }) {
 
   const loadPreview = useCallback(() => {
     if (!activeProject?.id) return;
-    clearTimeout(startupRetryRef.current);
     setLoading(true);
     projectsService.getPreview(activeProject.id, activePage)
       .then((res) => {
         const raw = typeof res.data === 'string' ? res.data : res.data.html || '';
         setHtml(raw);
-
-        if (raw.includes('Preview is still starting')) {
-          startupRetryRef.current = setTimeout(() => loadPreview(), 2500);
-        }
       })
       .catch(() => {
         // mock fallback for styling purposes if backend fails
@@ -864,12 +858,6 @@ function LivePreview({ deployedUrl }) {
   }, [activeProject?.id, activePage]);
 
   useEffect(() => { loadPreview(); }, [loadPreview]);
-
-  useEffect(() => {
-    return () => {
-      clearTimeout(startupRetryRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     const handleMessage = (e) => {
