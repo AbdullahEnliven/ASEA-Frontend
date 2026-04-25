@@ -39,6 +39,7 @@ import useBuilderStore from '@/store/builder.store';
 import useProjectsStore from '@/store/projects.store';
 import { projectsService } from '@/services/projects.service';
 import { integrationsService } from '@/services/integrations.service';
+import useAuthStore from '@/store/auth.store';
 import { DEVICE_WIDTHS } from '@/constants';
 import { Button } from '@/components/common';
 import toast from 'react-hot-toast';
@@ -501,6 +502,7 @@ function ChatSidebar() {
   const [agentSteps, setAgentSteps] = useState([]);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
+  const token = useAuthStore((s) => s.token);
   const mountedRef = useRef(false);
   const agentStepsRef = useRef([]);
 
@@ -546,6 +548,7 @@ function ChatSidebar() {
     
     const socket = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8000', {
        transports: ['websocket'],
+       auth: token ? { token } : undefined,
     });
     
     socket.on('connect', () => {
@@ -609,7 +612,7 @@ function ChatSidebar() {
        socket.emit('leave_project', { project_id: activeProject.id });
        socket.disconnect();
     };
-  }, [activeProject?.id]);
+  }, [activeProject?.id, token]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -812,6 +815,9 @@ function LivePreview({ deployedUrl }) {
   const [activeEdit, setActiveEdit] = useState(null);
   const debounceRef = useRef(null);
   const refreshRef = useRef(null);
+  const startupRetryRef = useRef(null);
+  const startupAttemptsRef = useRef(0);
+  const MAX_STARTUP_RETRIES = 4;
   const hasDeployedUrl = Boolean(deployedUrl);
 
   const getEditableHtml = useCallback(
@@ -841,10 +847,32 @@ function LivePreview({ deployedUrl }) {
 
   const loadPreview = useCallback(() => {
     if (!activeProject?.id) return;
+    clearTimeout(startupRetryRef.current);
     setLoading(true);
     projectsService.getPreview(activeProject.id, activePage)
       .then((res) => {
         const raw = typeof res.data === 'string' ? res.data : res.data.html || '';
+        if (raw.includes('Preview is still starting')) {
+          if (startupAttemptsRef.current < MAX_STARTUP_RETRIES) {
+            startupAttemptsRef.current += 1;
+            startupRetryRef.current = setTimeout(() => loadPreview(), 2500);
+            setHtml(raw);
+            setError(null);
+            return;
+          }
+
+          if (hasDeployedUrl) {
+            setHtml(`<style>body{margin:0;padding:0;overflow:hidden}iframe{width:100vw;height:100vh;border:none}</style><iframe src="${deployedUrl}"></iframe>`);
+            setError('Local preview did not start. Showing deployed site instead.');
+          } else {
+            setHtml(raw);
+            setError('Local preview is taking too long to start. Try refreshing preview after checking the project dev server dependencies.');
+          }
+          return;
+        }
+
+        startupAttemptsRef.current = 0;
+        setError(null);
         setHtml(raw);
       })
       .catch(() => {
@@ -852,12 +880,22 @@ function LivePreview({ deployedUrl }) {
         setHtml(`<div style="font-family:sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#333;background:#fafafa;">
           <h1 style="font-size:3rem;margin-bottom:1rem;color:#111;">System 01</h1>
           <p>Mocked preview fallback: Backend generated store.</p>
-        </div>`);    
+        </div>`);
+        setError('Failed to load preview endpoint.');
       })
       .finally(() => setLoading(false));
-  }, [activeProject?.id, activePage]);
+  }, [activeProject?.id, activePage, hasDeployedUrl, deployedUrl]);
 
-  useEffect(() => { loadPreview(); }, [loadPreview]);
+  useEffect(() => {
+    startupAttemptsRef.current = 0;
+    loadPreview();
+  }, [loadPreview]);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(startupRetryRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const handleMessage = (e) => {
@@ -954,6 +992,11 @@ function LivePreview({ deployedUrl }) {
           </div>
         ) : (
           <div className="flex-1 bg-white flex justify-center w-full h-full p-0 relative min-h-0">
+             {error ? (
+               <div className="absolute top-2 left-2 right-2 z-10 rounded-md border border-amber-300/50 bg-amber-50 text-amber-900 text-xs px-3 py-2">
+                 {error}
+               </div>
+             ) : null}
              <iframe
                 ref={iframeRef}
                 srcDoc={getEditableHtml(html)}

@@ -22,6 +22,10 @@ const DeployPage = lazy(() => import('@/pages/DeployPage'));
 const ProjectSettingsPage = lazy(() => import('@/pages/ProjectSettingsPage'));
 const AccountPage = lazy(() => import('@/pages/AccountPage'));
 const BillingPage = lazy(() => import('@/pages/BillingPage'));
+const AboutPage = lazy(() => import('@/pages/AboutPage'));
+const ContactPage = lazy(() => import('@/pages/ContactPage'));
+const PricingPage = lazy(() => import('@/pages/PricingPage'));
+const FeaturesPage = lazy(() => import('@/pages/FeaturesPage'));
 
 const pageVariants = {
   initial: { opacity: 0, y: 10 },
@@ -75,6 +79,10 @@ export default function App() {
             {/* Public routes */}
             <Route element={<PublicLayout />}>
               <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
+              <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
+              <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
+              <Route path="/pricing" element={<PageTransition><PricingPage /></PageTransition>} />
+              <Route path="/features" element={<PageTransition><FeaturesPage /></PageTransition>} />
             </Route>
 
             {/* Auth routes */}

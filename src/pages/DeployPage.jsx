@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Button, Input } from '@/components/common';
 import { projectsService } from '@/services/projects.service';
 import { integrationsService } from '@/services/integrations.service';
+import useAuthStore from '@/store/auth.store';
 
 // ─── Cloud Deploy Tab ───────────────────────────────────
 function CloudDeployTab({ projectId }) {
@@ -18,6 +19,7 @@ function CloudDeployTab({ projectId }) {
   const [deployedUrl, setDeployedUrl] = useState(null);
   const logsEndRef = useRef(null);
   const socketRef = useRef(null);
+  const token = useAuthStore((s) => s.token);
 
   // Auto-fill subdomain based on project name hash or just let user type
   useEffect(() => {
@@ -35,6 +37,7 @@ function CloudDeployTab({ projectId }) {
     if (step === 1) {
       const socket = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8000', {
         transports: ['websocket'],
+        auth: token ? { token } : undefined,
       });
       socketRef.current = socket;
       
@@ -50,7 +53,7 @@ function CloudDeployTab({ projectId }) {
         socket.disconnect();
       };
     }
-  }, [step, projectId]);
+  }, [step, projectId, token]);
 
   const handleDeploy = async () => {
     if (!subdomain.trim() || subdomain.length < 3) {
