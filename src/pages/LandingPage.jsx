@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
-import { useRef } from 'react';
 import {
   ArrowRight, Sparkles, Rocket, Github, Database, ShoppingCart, BarChart3,
-  Check, ChevronDown, Star, Zap, Globe,
+  Check, ChevronDown, Star, Zap, Globe, Layers, Play
 } from 'lucide-react';
 
 const features = [
@@ -70,6 +69,25 @@ const templates = [
   { name: 'Home Decor', category: 'Lifestyle', color: 'from-purple-500/20 to-pink-500/20', icon: '🛋️' },
   { name: 'Pet Supplies', category: 'Animals', color: 'from-lime-500/20 to-green-500/20', icon: '🐾' },
 ];
+
+function FloatingShape({ className, delay, duration }) {
+  return (
+    <motion.div
+      className={`absolute rounded-full blur-3xl opacity-20 filter -z-10 mix-blend-screen ${className}`}
+      animate={{
+        y: [0, -30, 0],
+        x: [0, 30, 0],
+        scale: [1, 1.1, 1],
+      }}
+      transition={{
+        duration: duration || 8,
+        repeat: Infinity,
+        ease: "easeInOut",
+        delay: delay || 0,
+      }}
+    />
+  );
+}
 
 const testimonials = [
   {
@@ -204,37 +222,37 @@ function FAQItem({ q, a }) {
 
 export default function LandingPage() {
   return (
-    <div className="relative overflow-hidden">
-      {/* Background blobs */}
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-blue-600/8 blur-[150px] rounded-full -z-10" />
-      <div className="pointer-events-none absolute top-[60%] -right-1/4 w-[600px] h-[600px] bg-purple-600/5 blur-[150px] rounded-full -z-10" />
+    <div className="relative overflow-hidden bg-zinc-950 text-white min-h-screen">
+      {/* Dynamic Backgrounds */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none -z-20" />
+      
+      <FloatingShape className="w-[500px] h-[500px] bg-blue-600 top-[-10%] left-[-10%]" duration={10} />
+      <FloatingShape className="w-[600px] h-[600px] bg-purple-600 top-[20%] right-[-15%]" delay={2} duration={12} />
+      <FloatingShape className="w-[400px] h-[400px] bg-emerald-600 bottom-[-10%] left-[20%]" delay={4} duration={9} />
 
       {/* ── Hero ─────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 pt-24 pb-20 lg:pt-36 lg:pb-28 flex flex-col items-center text-center">
+      <section className="relative w-full max-w-7xl mx-auto px-6 pt-24 pb-20 lg:pt-40 lg:pb-32 flex flex-col items-center text-center z-10">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, type: 'spring', bounce: 0.5 }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-md hover:bg-white/10 transition-colors shadow-lg shadow-blue-500/10"
         >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
-          </span>
-          <span className="text-xs font-medium text-blue-100/70 tracking-wide uppercase">
-            Now in Public Beta
+          <Sparkles size={14} className="text-blue-400" />
+          <span className="text-xs font-semibold text-blue-100/90 tracking-wide uppercase">
+            ASEA 2.0 is Live
           </span>
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tight leading-[1.05] mb-8"
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="text-6xl sm:text-7xl lg:text-9xl font-black tracking-tighter leading-[1] mb-8"
         >
-          Build your store{' '}
-          <span className="block text-transparent bg-clip-text bg-gradient-to-b from-white to-white/30">
-            with AI.
+          Generate Apps{' '}
+          <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 animate-gradient-x bg-[length:200%_auto]">
+            at Light Speed.
           </span>
         </motion.h1>
 
@@ -242,103 +260,187 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="max-w-2xl text-lg lg:text-xl text-gray-400 mb-12 leading-relaxed"
+          className="max-w-3xl text-lg lg:text-2xl text-gray-400 mb-12 leading-relaxed"
         >
-          ASEA is an AI-powered e-commerce store builder. Describe what you want and we
-          generate a full-stack store — frontend, backend, database, and admin panel —
-          in minutes.
+          Describe your vision in plain English. Watch our AI generate the complete stack—database, API, and an interactive UI—<span className="text-white font-medium">in under 3 minutes</span>.
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4"
         >
           <Link
             to="/register"
-            className="group inline-flex items-center gap-2 px-8 py-4 bg-white text-black rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10"
+            className="group relative inline-flex items-center gap-2 px-10 py-5 bg-white text-black rounded-2xl font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)] overflow-hidden"
           >
-            Start Building Free
-            <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+            <span className="relative z-10 flex items-center gap-2">
+              Start Generating Free
+              <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-gray-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
-          <Link
-            to="/login"
-            className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all text-center"
+          <a
+            href="#how-it-works"
+            className="group px-10 py-5 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all text-center flex items-center justify-center gap-2 backdrop-blur-md"
           >
-            Sign In
-          </Link>
+            <Play size={18} className="fill-white" />
+            See How
+          </a>
         </motion.div>
 
-        {/* Social proof strip */}
+        {/* Live Builder Preview */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="flex items-center gap-6 mt-14 text-sm text-gray-500"
+          initial={{ opacity: 0, y: 60 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-20 w-full max-w-5xl relative rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl shadow-2xl p-2 overflow-hidden group"
         >
-          <div className="flex items-center gap-1.5">
-            <Zap size={14} className="text-yellow-400" />
-            <span>Under 5 min to first store</span>
-          </div>
-          <div className="hidden sm:block w-px h-4 bg-white/10" />
-          <div className="hidden sm:flex items-center gap-1.5">
-            <Globe size={14} className="text-blue-400" />
-            <span>1,200+ stores generated</span>
-          </div>
-          <div className="hidden sm:block w-px h-4 bg-white/10" />
-          <div className="hidden sm:flex items-center gap-1.5">
-            <Star size={14} className="text-amber-400" />
-            <span>4.9 / 5 average rating</span>
+          <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-emerald-500/10 opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
+          <div className="relative rounded-lg border border-white/5 bg-black/50 overflow-hidden text-left shadow-2xl flex flex-col h-[400px]">
+            {/* Fake Mac Header */}
+            <div className="flex items-center px-4 py-3 bg-white/5 border-b border-white/10 gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500/80" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+              <div className="w-3 h-3 rounded-full bg-green-500/80" />
+              <div className="ml-4 text-xs text-gray-300 bg-white/5 px-3 py-1 rounded-md font-semibold tracking-wide">
+                Build Progress
+              </div>
+            </div>
+            {/* Fake Body */}
+            <div className="flex-1 p-6 text-sm leading-relaxed overflow-hidden relative">
+              <div className="text-gray-300 mb-4 text-base font-semibold">You describe your store. ASEA handles the heavy lifting.</div>
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: '100%' }}
+                transition={{ duration: 4, ease: "linear", delay: 1 }}
+                className="overflow-hidden space-y-3"
+              >
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+                  <Sparkles size={16} className="text-blue-400 mt-0.5" />
+                  <div>
+                    <p className="text-white font-medium">"Create a modern sneaker store with smooth checkout"</p>
+                    <p className="text-gray-400 text-xs mt-1">Your request is understood in plain English.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+                  <Check size={16} className="text-emerald-400 mt-0.5" />
+                  <div>
+                    <p className="text-white font-medium">Store pages and product catalog are generated.</p>
+                    <p className="text-gray-400 text-xs mt-1">Home, product list, cart, and checkout are ready.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+                  <Database size={16} className="text-cyan-400 mt-0.5" />
+                  <div>
+                    <p className="text-white font-medium">Accounts and data are connected automatically.</p>
+                    <p className="text-gray-400 text-xs mt-1">Sign in and customer data are configured for you.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-emerald-500/30">
+                  <Rocket size={16} className="text-emerald-400 mt-0.5" />
+                  <div>
+                    <p className="text-emerald-300 font-semibold">Your store is live and ready to launch.</p>
+                    <p className="text-gray-400 text-xs mt-1">You can customize text, images, and branding instantly.</p>
+                  </div>
+                </div>
+              </motion.div>
+              {/* Overlay fade out */}
+              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+            </div>
           </div>
         </motion.div>
       </section>
 
-      {/* ── Template Showcase ─────────────────── */}
-      <section className="pb-28 overflow-hidden">
-        <FadeUp className="text-center mb-12 px-6">
-          <h2 className="text-3xl font-bold">Launch Any Store, Instantly</h2>
-          <p className="text-gray-400 mt-3 text-sm">
-            Browse community-built templates or describe your own from scratch.
+      {/* ── Template Showcase (Marquee) ─────────────────── */}
+      <section className="pb-32 overflow-hidden bg-black/20 py-20 border-y border-white/5">
+        <div className="text-center mb-12 px-6">
+          <motion.h2
+            className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-300 to-emerald-300 bg-[length:220%_100%]"
+            animate={{
+              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+              y: [0, -4, 0],
+            }}
+            transition={{
+              duration: 6,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          >
+            Launch Any Architecture
+          </motion.h2>
+          <p className="text-gray-400 mt-3 text-sm max-w-xl mx-auto">
+            From sneaker stores to membership businesses, just explain what you want and ASEA builds it for you.
           </p>
-        </FadeUp>
+        </div>
 
-        <div className="flex gap-5 px-6 max-w-7xl mx-auto flex-wrap justify-center">
-          {templates.map((t, i) => (
-            <FadeUp key={t.name} delay={i * 0.06}>
+        <div className="relative flex overflow-hidden group">
+          <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-zinc-950 to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-zinc-950 to-transparent z-10 pointer-events-none" />
+          
+          <div className="flex space-x-5 animate-marquee group-hover:[animation-play-state:paused] py-4">
+            {[...templates, ...templates, ...templates].map((t, i) => (
               <div
-                className={`relative w-52 h-40 rounded-2xl bg-gradient-to-br ${t.color} border border-white/10
-                  flex flex-col items-center justify-center gap-3 hover:scale-105 transition-transform cursor-pointer group`}
+                key={i}
+                className={`relative w-64 h-44 rounded-3xl bg-gradient-to-br ${t.color} border border-white/10
+                  flex flex-col items-center justify-center gap-4 hover:scale-105 transition-all cursor-pointer backdrop-blur-sm shadow-xl flex-none`}
               >
-                <span className="text-4xl">{t.icon}</span>
-                <div className="text-center">
-                  <p className="font-semibold text-sm">{t.name}</p>
-                  <p className="text-xs text-gray-400">{t.category}</p>
+                <div className="p-3 bg-white/10 rounded-2xl shadow-inner backdrop-blur-md">
+                  <motion.span
+                    className="text-4xl drop-shadow-md inline-block"
+                    animate={{
+                      y: [0, -6, 0],
+                      rotate: [0, -4, 4, 0],
+                      scale: [1, 1.08, 1],
+                    }}
+                    transition={{
+                      duration: 3.2,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                      delay: (i % templates.length) * 0.15,
+                    }}
+                  >
+                    {t.icon}
+                  </motion.span>
                 </div>
-                <div className="absolute inset-0 rounded-2xl ring-1 ring-white/0 group-hover:ring-white/20 transition-all" />
+                <div className="text-center">
+                  <p className="font-bold text-white tracking-wide">{t.name}</p>
+                  <p className="text-xs text-white/70 font-medium uppercase mt-1 tracking-widest">{t.category}</p>
+                </div>
+                <div className="absolute inset-0 rounded-3xl ring-1 ring-white/0 hover:ring-white/40 transition-all glow-effect z-20" />
               </div>
-            </FadeUp>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
       {/* ── How It Works ──────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 pb-28">
-        <FadeUp className="text-center mb-16">
-          <h2 className="text-3xl font-bold">How It Works</h2>
+      <section className="relative w-full max-w-7xl mx-auto px-6 py-28 z-10" id="how-it-works">
+        <FadeUp className="text-center mb-20">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-6">
+            <Layers size={14} /> Pipeline
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">From idea to live system.</h2>
         </FadeUp>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <div className="relative grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-4 mt-8">
+          {/* Connector line (desktop) */}
+          <div className="hidden md:block absolute top-[2.5rem] left-[10%] right-[10%] h-[2px] bg-gradient-to-r from-blue-500/10 via-purple-500/30 to-emerald-500/10 -z-10" />
+
           {steps.map((step, i) => (
-            <FadeUp key={step.num} delay={i * 0.08}>
-              <div className="relative p-6 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-white/20 transition-colors h-full">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 font-bold mb-4">
+            <FadeUp key={step.num} delay={i * 0.15}>
+              <div className="relative p-6 rounded-3xl bg-black/40 border border-white/5 hover:border-white/20 transition-all hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.05)] h-full backdrop-blur-xl group">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-white/5 to-white/10 border border-white/10 text-white font-black text-xl flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform">
                   {step.num}
                 </div>
-                <h3 className="font-bold mb-2">{step.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{step.desc}</p>
+                <h3 className="font-bold text-xl mb-3 text-white">{step.title}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">{step.desc}</p>
+                
+                {/* Arrow Connector for Desktop */}
                 {i < steps.length - 1 && (
-                  <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 text-gray-700">
-                    <ArrowRight size={16} />
+                  <div className="hidden md:flex absolute -right-6 top-10 text-gray-600 bg-zinc-950 p-2 rounded-full border border-white/5">
+                    <ArrowRight size={18} />
                   </div>
                 )}
               </div>
@@ -348,46 +450,29 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ──────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 pb-28">
-        <FadeUp className="text-center mb-16">
-          <h2 className="text-3xl font-bold">Everything You Need</h2>
-          <p className="text-gray-400 mt-3 text-sm max-w-xl mx-auto">
-            From AI generation to one-click deploy — ASEA covers the full stack.
+      <section className="relative w-full max-w-7xl mx-auto px-6 py-28 z-10">
+        <FadeUp className="text-center mb-20">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-500/10 mb-6">
+            <Sparkles size={24} className="text-blue-400" />
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black">Zero Limitations.</h2>
+          <p className="text-xl text-gray-400 mt-6 max-w-2xl mx-auto leading-relaxed">
+            Unlike simple site builders, ASEA writes scalable React and Python code with an actual Postgres database using Supabase. No vendor lock-in.
           </p>
         </FadeUp>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((f, i) => (
-            <FadeUp key={f.title} delay={i * 0.06}>
-              <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 hover:border-white/20 transition-colors h-full">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${colorMap[f.color]}`}>
-                  <f.icon size={22} />
+            <FadeUp key={f.title} delay={i * 0.1}>
+              <div className="group relative p-8 rounded-[2rem] bg-zinc-950 border border-white/5 hover:border-white/10 overflow-hidden h-full flex flex-col items-start hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+                <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-0 group-hover:opacity-40 transition-opacity ${colorMap[f.color]}`} />
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 shadow-inner ${colorMap[f.color]}`}>
+                  <f.icon size={26} />
                 </div>
-                <h3 className="text-lg font-bold mb-3">{f.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
-              </div>
-            </FadeUp>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Testimonials ──────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 pb-28">
-        <FadeUp className="text-center mb-14">
-          <h2 className="text-3xl font-bold">Loved by Builders</h2>
-        </FadeUp>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {testimonials.map((t, i) => (
-            <FadeUp key={t.author} delay={i * 0.1}>
-              <div className="p-7 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col gap-4 h-full">
-                <div className="flex gap-1">
-                  {Array.from({ length: t.stars }).map((_, s) => (
-                    <Star key={s} size={14} className="fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-sm text-gray-300 leading-relaxed flex-1">&ldquo;{t.quote}&rdquo;</p>
-                <div>
-                  <p className="font-semibold text-sm">{t.author}</p>
-                  <p className="text-xs text-gray-500">{t.role}</p>
+                <h3 className="text-2xl font-bold mb-4 text-white tracking-tight">{f.title}</h3>
+                <p className="text-gray-400 text-base leading-relaxed">{f.desc}</p>
+                <div className="mt-auto pt-6 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0">
+                  <ArrowRight className={`w-6 h-6 ${colorMap[f.color].split(' ')[1]}`} />
                 </div>
               </div>
             </FadeUp>
@@ -396,47 +481,49 @@ export default function LandingPage() {
       </section>
 
       {/* ── Pricing ───────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 pb-28" id="pricing">
-        <FadeUp className="text-center mb-14">
-          <h2 className="text-3xl font-bold">Simple, Transparent Pricing</h2>
-          <p className="text-gray-400 mt-3 text-sm">Start free. Scale when you're ready.</p>
+      <section className="relative w-full max-w-7xl mx-auto px-6 py-28 z-10" id="pricing">
+        <FadeUp className="text-center mb-24">
+          <h2 className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-gray-200 to-gray-500">Scale without limits.</h2>
+          <p className="text-gray-400 mt-6 text-xl max-w-2xl mx-auto">Start instantly in the public beta. Upgrade to Pro anytime for dedicated compute and advanced analytics.</p>
         </FadeUp>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
           {plans.map((plan, i) => (
-            <FadeUp key={plan.name} delay={i * 0.1}>
+            <FadeUp key={plan.name} delay={i * 0.15}>
               <div
-                className={`relative flex flex-col rounded-3xl border p-8 h-full
+                className={`relative flex flex-col rounded-[2.5rem] border p-10 h-full backdrop-blur-3xl transform transition-all duration-300 hover:scale-105
                   ${plan.highlight
-                    ? 'bg-blue-600/10 border-blue-500/40 ring-1 ring-blue-500/30'
-                    : 'bg-white/[0.02] border-white/10'}`}
+                    ? 'bg-blue-900/20 border-blue-500/50 shadow-[0_0_80px_rgba(59,130,246,0.15)] z-20 scale-[1.02]'
+                    : 'bg-zinc-950/80 border-white/10 hover:border-white/30 z-10'}`}
               >
                 {plan.highlight && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-blue-600 text-white text-xs font-bold rounded-full">
-                    Most Popular
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg">
+                    Highest Performer
                   </div>
                 )}
-                <div className="mb-6">
-                  <p className="font-bold text-lg">{plan.name}</p>
-                  <p className="text-gray-500 text-xs mt-1">{plan.desc}</p>
-                  <div className="flex items-end gap-1 mt-4">
-                    <span className="text-4xl font-black">{plan.price}</span>
-                    <span className="text-gray-500 text-sm mb-1.5">{plan.period}</span>
+                <div className="mb-8">
+                  <p className={`font-black text-2xl ${plan.highlight ? 'text-blue-400' : 'text-white'}`}>{plan.name}</p>
+                  <p className="text-gray-400 text-sm mt-3 leading-relaxed">{plan.desc}</p>
+                  <div className="flex items-end gap-1 mt-8 mb-4">
+                    <span className="text-6xl font-black text-white tracking-tighter">{plan.price}</span>
+                    {plan.price !== 'Custom' && <span className="text-gray-500 text-lg mb-2 font-medium">{plan.period}</span>}
                   </div>
                 </div>
-                <ul className="space-y-3 flex-1 mb-8">
+                <ul className="space-y-4 flex-1 mb-10">
                   {plan.features.map((feat) => (
-                    <li key={feat} className="flex items-start gap-2.5 text-sm text-gray-300">
-                      <Check size={15} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                    <li key={feat} className="flex items-center gap-4 text-base text-gray-300 font-medium">
+                      <div className={`p-1 rounded-full ${plan.highlight ? 'bg-blue-500/20 text-blue-400' : 'bg-white/10 text-white'}`}>
+                        <Check size={14} strokeWidth={3} />
+                      </div>
                       {feat}
                     </li>
                   ))}
                 </ul>
                 <Link
                   to="/register"
-                  className={`block text-center py-3 rounded-xl font-semibold text-sm transition-all
+                  className={`block text-center py-5 rounded-2xl font-bold text-lg transition-all
                     ${plan.highlight
-                      ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                      : 'bg-white/5 border border-white/10 hover:bg-white/10 text-white'}`}
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-xl shadow-blue-500/20'
+                      : 'bg-white text-black hover:bg-gray-200'}`}
                 >
                   {plan.cta}
                 </Link>
