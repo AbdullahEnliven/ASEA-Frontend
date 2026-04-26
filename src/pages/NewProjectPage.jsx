@@ -9,19 +9,113 @@ import useGenerationStore from '@/store/generation.store';
 import useProjectsStore from '@/store/projects.store';
 import { projectsService } from '@/services/projects.service';
 
-import { AnimatedAIChat } from '@/components/ui/animated-ai-chat';
-
+// ─── Step 1: Requirement Input ────────────────────────
 function RequirementStep({ data, onChange, onGenerate }) {
-  // We use the new AnimatedAIChat component instead of the old form.
-  const handleMessage = (message) => {
-    onChange({ requirements: message, category: 'Other' });
-    onGenerate();
+  const [enhancing, setEnhancing] = useState(false);
+
+  const enhance = async () => {
+    if (!data.requirements?.trim()) {
+      toast.error('Please describe your store first');
+      return;
+    }
+    setEnhancing(true);
+    try {
+      const res = await projectsService.enhanceRequirements(data.requirements);
+      onChange({ requirements: res.data.enhanced });
+      toast.success('Requirements enhanced!');
+    } catch {
+      toast.error('Enhancement failed');
+    } finally {
+      setEnhancing(false);
+    }
   };
 
   return (
-    <div className="w-full flex justify-center items-center h-[80vh]">
-      <AnimatedAIChat onSubmit={handleMessage} />
-    </div>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-2xl mx-auto"
+    >
+      <h2 className="text-2xl font-bold mb-2">Describe Your Store</h2>
+      <p className="text-gray-400 text-sm mb-8">
+        Tell us what kind of e-commerce store you want to build. Be as detailed as you like.
+      </p>
+
+      <textarea
+        value={data.requirements || ''}
+        onChange={(e) => onChange({ requirements: e.target.value })}
+        rows={8}
+        placeholder="I want a fashion store selling streetwear for men and women. I need size and color variants, a lookbook page, and Instagram-style product photos..."
+        className="w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none"
+      />
+      <div className="flex items-center justify-between mt-2">
+        <span className="text-xs text-gray-500">
+          {data.requirements?.length || 0} characters
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={enhance}
+          loading={enhancing}
+        >
+          <Sparkles size={14} /> Enhance with AI
+        </Button>
+      </div>
+
+      {/* Category pills */}
+      <div className="mt-6">
+        <p className="text-sm text-gray-400 mb-3">Store Category</p>
+        <div className="flex flex-wrap gap-2">
+          {STORE_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => onChange({ category: cat })}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border
+                ${data.category === cat
+                  ? 'bg-blue-500/15 border-blue-500/40 text-blue-400'
+                  : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
+                }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Optional fields */}
+      <details className="mt-6">
+        <summary className="text-sm text-gray-400 cursor-pointer hover:text-white">
+          Optional: Additional details
+        </summary>
+        <div className="mt-4 space-y-4">
+          <Input
+            label="Store Name"
+            placeholder="My Awesome Store"
+            value={data.storeName || ''}
+            onChange={(e) => onChange({ storeName: e.target.value })}
+          />
+          <p className="text-xs text-gray-500 -mt-2">
+            Leave blank to auto-generate a strong store name using Groq.
+          </p>
+          <Input
+            label="Target Market"
+            placeholder="e.g. Young adults 18-35"
+            value={data.targetMarket || ''}
+            onChange={(e) => onChange({ targetMarket: e.target.value })}
+          />
+        </div>
+      </details>
+
+      <div className="flex justify-end mt-8">
+        <Button
+          size="lg"
+          onClick={onGenerate}
+          disabled={!data.requirements?.trim()}
+        >
+          Generate Store <ArrowRight size={18} />
+        </Button>
+      </div>
+    </motion.div>
   );
 }
 
