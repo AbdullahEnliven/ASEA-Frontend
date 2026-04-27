@@ -6,10 +6,23 @@ export const authService = {
   register: (data) => api.post('/auth/register', { 
     email: data.email, 
     password: data.password, 
-    full_name: data.name 
+    full_name: data.name,
+    company_name: data.companyName,
+    role: data.role,
+    phone: data.phone,
+    website: data.website,
+    country: data.country,
+    industry: data.industry,
+    company_size: data.companySize,
+    primary_goal: data.primaryGoal,
+    store_stage: data.storeStage,
+    monthly_revenue: data.monthlyRevenue,
+    referral_source: data.referralSource,
   }),
 
-  getMe: () => api.get('/auth/me'),
+  getMe: () => api.get('/users/me'),
+
+  updateProfile: (data) => api.patch('/users/me', data),
 
   refreshToken: () => api.post('/auth/refresh'),
 

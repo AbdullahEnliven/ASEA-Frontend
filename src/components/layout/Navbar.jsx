@@ -64,6 +64,7 @@ export default function Navbar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const userRef = useRef(null);
   const notifRef = useRef(null);
+  const displayName = user?.name || user?.full_name || 'User';
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -106,9 +107,9 @@ export default function Navbar() {
           className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-gray-300 hover:bg-white/5 transition-colors"
         >
           <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white">
-            {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            {displayName.charAt(0).toUpperCase()}
           </div>
-          <span className="hidden sm:inline">{user?.name || 'User'}</span>
+          <span className="hidden sm:inline">{displayName}</span>
           <ChevronDown size={14} className={`transition-transform ${userOpen ? 'rotate-180' : ''}`} />
         </button>
 
