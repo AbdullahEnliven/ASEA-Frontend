@@ -63,6 +63,9 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
   const [subdomainError, setSubdomainError] = useState('');
   const [supabaseConnected, setSupabaseConnected] = useState(true);
   const [checkingSupabase, setCheckingSupabase] = useState(false);
+  const activeProjectSupabaseConnected = Boolean(
+    activeProject?.supabase_connected ?? activeProject?.supabaseConnected
+  );
 
   const devices = [
     { mode: 'desktop', icon: Monitor },
@@ -93,6 +96,7 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
   useEffect(() => {
     if (!activeProject?.id) return;
     let mounted = true;
+    setSupabaseConnected(activeProjectSupabaseConnected);
     setCheckingSupabase(true);
     integrationsService
       .getSupabaseStatus(activeProject.id)
@@ -102,7 +106,7 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
       })
       .catch(() => {
         if (!mounted) return;
-        setSupabaseConnected(false);
+        setSupabaseConnected(activeProjectSupabaseConnected);
       })
       .finally(() => {
         if (mounted) setCheckingSupabase(false);
@@ -111,7 +115,7 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
     return () => {
       mounted = false;
     };
-  }, [activeProject?.id]);
+  }, [activeProject?.id, activeProjectSupabaseConnected]);
 
   const handleDownloadCode = async () => {
     if (!activeProject?.id) return;

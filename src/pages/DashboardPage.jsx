@@ -1,6 +1,18 @@
 import { Link } from 'react-router-dom';
-import { Plus, LayoutGrid, List, Trash2, ExternalLink, Download, Code2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import {
+  Plus,
+  LayoutGrid,
+  List,
+  Trash2,
+  ExternalLink,
+  Download,
+  Code2,
+  Search,
+  SlidersHorizontal,
+  X,
+  Share2,
+} from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { projectsService } from '@/services/projects.service';
 import { Button, Badge, Spinner } from '@/components/common';
 import useProjectsStore from '@/store/projects.store';
@@ -13,6 +25,44 @@ const statusVariant = {
   deployed: 'info',
 };
 
+const getProjectStorageBytes = (project) => {
+  const value = project.storage_bytes ?? project.storageBytes ?? 0;
+  const bytes = Number(value);
+  return Number.isFinite(bytes) && bytes > 0 ? bytes : 0;
+};
+
+const getProjectVercelUrl = (project) =>
+  project.vercel_url ||
+  project.vercelUrl ||
+  project.vercel_production_url ||
+  project.vercelProductionUrl ||
+  project.vercel_preview_url ||
+  project.vercelPreviewUrl ||
+  '';
+
+const isProjectLive = (project) => {
+  const live = project.is_live ?? project.isLive;
+  if (live !== undefined && live !== null) return Boolean(live);
+  return Boolean(getProjectVercelUrl(project));
+};
+
+const getProjectStatus = (project) => (isProjectLive(project) ? 'deployed' : project.status);
+
+const isDatabaseConnected = (project) => Boolean(
+  project.supabase_connected ?? project.supabaseConnected
+);
+
+const getCreatedTime = (project) => new Date(project.createdAt ?? project.created_at ?? 0).getTime() || 0;
+
+const formatBytes = (bytes) => {
+  if (!bytes) return '0 MB';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / (1024 ** exponent);
+  const precision = value >= 10 || exponent === 0 ? 0 : 1;
+  return `${value.toFixed(precision)} ${units[exponent]}`;
+};
+
 function ProjectCard({ project }) {
   const [downloading, setDownloading] = useState(false);
   const previewUrl = project.thumbnailUrl || project.thumbnail_url || '';
@@ -21,6 +71,8 @@ function ProjectCard({ project }) {
   const createdDateLabel = createdDate && !Number.isNaN(createdDate.getTime())
     ? createdDate.toLocaleDateString()
     : 'Unknown date';
+  const displayStatus = getProjectStatus(project);
+  const databaseConnected = isDatabaseConnected(project);
 
   const handleDownloadProject = async () => {
     setDownloading(true);
@@ -37,6 +89,21 @@ function ProjectCard({ project }) {
       toast.error('Failed to download project zip');
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const handleShareStore = async () => {
+    const deployedUrl = getProjectVercelUrl(project);
+    if (!deployedUrl) {
+      toast.error('This store is not deployed yet');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(deployedUrl);
+      toast.success('Deployed store link copied');
+    } catch {
+      toast.error('Failed to copy store link');
     }
   };
 
@@ -61,11 +128,16 @@ function ProjectCard({ project }) {
             {createdDateLabel}
           </p>
         </div>
-        <Badge variant={statusVariant[project.status] || 'default'}>
-          {project.status}
-        </Badge>
+        <div className="flex flex-col items-end gap-1.5">
+          <Badge variant={statusVariant[displayStatus] || 'default'}>
+            {displayStatus}
+          </Badge>
+          <Badge variant={databaseConnected ? 'success' : 'danger'}>
+            {databaseConnected ? 'database connected' : 'database not connected'}
+          </Badge>
+        </div>
       </div>
-      <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex flex-wrap gap-2 mt-4">
         <Link
           to={`/projects/${project.id}`}
           className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10"
@@ -78,6 +150,14 @@ function ProjectCard({ project }) {
         >
           <Code2 size={12} /> Code
         </Link>
+        <button
+          onClick={handleShareStore}
+          disabled={!getProjectVercelUrl(project)}
+          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10 disabled:opacity-45 disabled:cursor-not-allowed"
+          title={getProjectVercelUrl(project) || 'Deploy this store before sharing'}
+        >
+          <Share2 size={12} /> Share
+        </button>
         <button
           onClick={handleDownloadProject}
           disabled={downloading}
@@ -98,6 +178,13 @@ export default function DashboardPage() {
   const setProjects = useProjectsStore((s) => s.setProjects);
   const [view, setView] = useState('grid');
   const [loading, setLoading] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    query: '',
+    deployment: 'all',
+    database: 'all',
+    sort: 'newest',
+  });
 
   useEffect(() => {
     projectsService.list()
@@ -114,6 +201,47 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, [setProjects]);
 
+  const filteredProjects = useMemo(() => {
+    const query = filters.query.trim().toLowerCase();
+
+    return projects
+      .filter((project) => {
+        const name = String(project.name || '').toLowerCase();
+        const slug = String(project.slug || '').toLowerCase();
+        const matchesQuery = !query || name.includes(query) || slug.includes(query);
+        const status = getProjectStatus(project);
+        const matchesDeployment = filters.deployment === 'all' || status === filters.deployment;
+        const connected = isDatabaseConnected(project);
+        const matchesDatabase =
+          filters.database === 'all' ||
+          (filters.database === 'connected' && connected) ||
+          (filters.database === 'not_connected' && !connected);
+
+        return matchesQuery && matchesDeployment && matchesDatabase;
+      })
+      .sort((a, b) => {
+        if (filters.sort === 'oldest') return getCreatedTime(a) - getCreatedTime(b);
+        if (filters.sort === 'name') return String(a.name || '').localeCompare(String(b.name || ''));
+        if (filters.sort === 'storage') return getProjectStorageBytes(b) - getProjectStorageBytes(a);
+        return getCreatedTime(b) - getCreatedTime(a);
+      });
+  }, [projects, filters]);
+
+  const hasActiveFilters =
+    Boolean(filters.query.trim()) ||
+    filters.deployment !== 'all' ||
+    filters.database !== 'all' ||
+    filters.sort !== 'newest';
+
+  const resetFilters = () => {
+    setFilters({
+      query: '',
+      deployment: 'all',
+      database: 'all',
+      sort: 'newest',
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-24">
@@ -122,14 +250,22 @@ export default function DashboardPage() {
     );
   }
 
+  const storesLive = projects.filter((project) => {
+    return isProjectLive(project);
+  }).length;
+  const storageUsed = projects.reduce(
+    (total, project) => total + getProjectStorageBytes(project),
+    0
+  );
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
           { label: 'Total Projects', value: projects.length },
-          { label: 'Stores Live', value: projects.filter((p) => p.status === 'deployed').length },
-          { label: 'Storage Used', value: '0 MB' },
+          { label: 'Stores Live', value: storesLive },
+          { label: 'Storage Used', value: formatBytes(storageUsed) },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -142,9 +278,29 @@ export default function DashboardPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-between">
         <h1 className="text-xl font-bold">Projects</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full sm:w-72">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              value={filters.query}
+              onChange={(e) => setFilters((current) => ({ ...current, query: e.target.value }))}
+              placeholder="Search projects"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-9 pr-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-blue-500/40"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((current) => !current)}
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+              filtersOpen || hasActiveFilters
+                ? 'border-blue-500/40 bg-blue-500/10 text-blue-300'
+                : 'border-white/10 bg-white/[0.03] text-gray-300 hover:bg-white/10'
+            }`}
+          >
+            <SlidersHorizontal size={15} /> Filters
+          </button>
           <div className="flex rounded-lg border border-white/10 overflow-hidden">
             <button
               onClick={() => setView('grid')}
@@ -167,6 +323,62 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {filtersOpen && (
+        <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <label className="space-y-1.5">
+              <span className="text-xs font-medium text-gray-400">Deployment</span>
+              <select
+                value={filters.deployment}
+                onChange={(e) => setFilters((current) => ({ ...current, deployment: e.target.value }))}
+                className="w-full rounded-lg border border-white/10 bg-[#111] px-3 py-2 text-sm text-white outline-none focus:border-blue-500/40"
+              >
+                <option value="all">All statuses</option>
+                <option value="deployed">Deployed</option>
+                <option value="ready">Ready</option>
+                <option value="generating">Generating</option>
+                <option value="draft">Draft</option>
+              </select>
+            </label>
+            <label className="space-y-1.5">
+              <span className="text-xs font-medium text-gray-400">Database</span>
+              <select
+                value={filters.database}
+                onChange={(e) => setFilters((current) => ({ ...current, database: e.target.value }))}
+                className="w-full rounded-lg border border-white/10 bg-[#111] px-3 py-2 text-sm text-white outline-none focus:border-blue-500/40"
+              >
+                <option value="all">All database states</option>
+                <option value="connected">Connected</option>
+                <option value="not_connected">Not connected</option>
+              </select>
+            </label>
+            <label className="space-y-1.5">
+              <span className="text-xs font-medium text-gray-400">Sort</span>
+              <select
+                value={filters.sort}
+                onChange={(e) => setFilters((current) => ({ ...current, sort: e.target.value }))}
+                className="w-full rounded-lg border border-white/10 bg-[#111] px-3 py-2 text-sm text-white outline-none focus:border-blue-500/40"
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="name">Name A-Z</option>
+                <option value="storage">Storage used</option>
+              </select>
+            </label>
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={resetFilters}
+                disabled={!hasActiveFilters}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-300 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <X size={15} /> Clear filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Projects */}
       {projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -183,6 +395,19 @@ export default function DashboardPage() {
             </Button>
           </Link>
         </div>
+      ) : filteredProjects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
+            <SlidersHorizontal size={30} className="text-gray-600" />
+          </div>
+          <h2 className="text-lg font-semibold mb-2">No matching projects</h2>
+          <p className="text-sm text-gray-400 mb-6 max-w-xs">
+            Adjust your filters to see more stores.
+          </p>
+          <Button size="md" variant="secondary" onClick={resetFilters}>
+            <X size={16} /> Clear filters
+          </Button>
+        </div>
       ) : (
         <div
           className={
@@ -191,7 +416,7 @@ export default function DashboardPage() {
               : 'space-y-3'
           }
         >
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}
         </div>
