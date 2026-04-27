@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { projectsService } from '@/services/projects.service';
-import { Button, Badge, Spinner } from '@/components/common';
+import { Button, Badge } from '@/components/common';
 import useProjectsStore from '@/store/projects.store';
 import toast from 'react-hot-toast';
 
@@ -54,15 +54,6 @@ const isDatabaseConnected = (project) => Boolean(
 
 const getCreatedTime = (project) => new Date(project.createdAt ?? project.created_at ?? 0).getTime() || 0;
 
-const resolveAssetUrl = (url) => {
-  if (!url) return '';
-  if (/^(https?:|data:|blob:)/i.test(url)) return url;
-
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  const origin = new URL(apiBase, window.location.origin).origin;
-  return `${origin}${url.startsWith('/') ? url : `/${url}`}`;
-};
-
 const formatBytes = (bytes) => {
   if (!bytes) return '0 MB';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -72,10 +63,67 @@ const formatBytes = (bytes) => {
   return `${value.toFixed(precision)} ${units[exponent]}`;
 };
 
+function DashboardSkeleton() {
+  const statSkeletons = ['stat-1', 'stat-2', 'stat-3'];
+  const projectSkeletons = ['project-1', 'project-2', 'project-3'];
+
+  return (
+    <div className="max-w-7xl mx-auto animate-pulse" aria-label="Loading dashboard">
+      <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-3">
+        {statSkeletons.map((item) => (
+          <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+            <div className="h-4 w-28 rounded bg-white/10" />
+            <div className="mt-3 h-8 w-16 rounded bg-white/15" />
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="h-7 w-28 rounded bg-white/15" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] sm:w-72" />
+          <div className="h-10 w-24 rounded-lg border border-white/10 bg-white/[0.03]" />
+          <div className="h-10 w-20 rounded-lg border border-white/10 bg-white/[0.03]" />
+          <div className="h-10 w-32 rounded-full bg-white/15" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {projectSkeletons.map((item) => (
+          <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+            <div className="mb-4 flex h-28 items-center gap-4 rounded-xl border border-white/10 bg-[#111] px-5">
+              <div className="h-14 w-14 rounded-xl bg-white/10" />
+              <div className="min-w-0 flex-1">
+                <div className="h-4 w-3/5 rounded bg-white/15" />
+                <div className="mt-3 h-3 w-2/5 rounded bg-white/10" />
+              </div>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="h-5 w-2/5 rounded bg-white/15" />
+                <div className="mt-2 h-3 w-20 rounded bg-white/10" />
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <div className="h-6 w-20 rounded-full bg-white/10" />
+                <div className="h-6 w-36 rounded-full bg-white/10" />
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <div className="h-9 w-20 rounded-lg bg-white/10" />
+              <div className="h-9 w-20 rounded-lg bg-white/10" />
+              <div className="h-9 w-20 rounded-lg bg-white/10" />
+              <div className="h-9 w-24 rounded-lg bg-white/10" />
+              <div className="ml-auto h-9 w-10 rounded-lg bg-white/10" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ProjectCard({ project }) {
   const [downloading, setDownloading] = useState(false);
-  const [previewFailed, setPreviewFailed] = useState(false);
-  const previewUrl = resolveAssetUrl(project.thumbnailUrl || project.thumbnail_url || '');
   const deployedUrl = getProjectVercelUrl(project);
   const createdAtValue = project.createdAt || project.created_at;
   const createdDate = createdAtValue ? new Date(createdAtValue) : null;
@@ -84,10 +132,12 @@ function ProjectCard({ project }) {
     : 'Unknown date';
   const displayStatus = getProjectStatus(project);
   const databaseConnected = isDatabaseConnected(project);
-
-  useEffect(() => {
-    setPreviewFailed(false);
-  }, [previewUrl]);
+  const initials = String(project.name || 'Store')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'ST';
 
   const handleDownloadProject = async () => {
     setDownloading(true);
@@ -123,21 +173,14 @@ function ProjectCard({ project }) {
 
   return (
     <div className="group rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-white/20 transition-all">
-      <div className="relative h-36 rounded-xl bg-white/5 mb-4 overflow-hidden flex items-center justify-center text-gray-600 text-sm">
-        {previewUrl && !previewFailed ? (
-          <img
-            src={previewUrl}
-            alt={`${project.name} preview`}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            onError={() => setPreviewFailed(true)}
-          />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.02] px-6 text-center">
-            <p className="text-sm font-medium text-gray-300">{project.name}</p>
-            <p className="mt-1 text-xs text-gray-500">Thumbnail is being generated</p>
-          </div>
-        )}
+      <div className="relative mb-4 flex h-28 items-center gap-4 overflow-hidden rounded-xl border border-white/10 bg-[#111] px-5">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-lg font-bold text-blue-300">
+          {initials}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-white">{project.name}</p>
+          <p className="mt-1 text-xs text-gray-500">{displayStatus === 'deployed' ? 'Vercel store' : 'Project workspace'}</p>
+        </div>
       </div>
       <div className="flex items-start justify-between mb-2">
         <div>
@@ -270,11 +313,7 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-24">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const storesLive = projects.filter((project) => {

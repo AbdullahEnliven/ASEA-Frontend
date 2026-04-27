@@ -13,8 +13,6 @@ export const projectsService = {
 
   delete: (id) => api.delete(`/projects/${encodeURIComponent(id)}`),
 
-  generateThumbnails: () => api.post('/projects/thumbnails/generate'),
-
   getSpec: (id) => api.get(`/projects/${encodeURIComponent(id)}/spec`),
 
   generateSpec: (id, requirements) =>
