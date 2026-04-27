@@ -54,6 +54,15 @@ const isDatabaseConnected = (project) => Boolean(
 
 const getCreatedTime = (project) => new Date(project.createdAt ?? project.created_at ?? 0).getTime() || 0;
 
+const resolveAssetUrl = (url) => {
+  if (!url) return '';
+  if (/^(https?:|data:|blob:)/i.test(url)) return url;
+
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const origin = new URL(apiBase, window.location.origin).origin;
+  return `${origin}${url.startsWith('/') ? url : `/${url}`}`;
+};
+
 const formatBytes = (bytes) => {
   if (!bytes) return '0 MB';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -65,7 +74,9 @@ const formatBytes = (bytes) => {
 
 function ProjectCard({ project }) {
   const [downloading, setDownloading] = useState(false);
-  const previewUrl = project.thumbnailUrl || project.thumbnail_url || '';
+  const [previewFailed, setPreviewFailed] = useState(false);
+  const previewUrl = resolveAssetUrl(project.thumbnailUrl || project.thumbnail_url || '');
+  const deployedUrl = getProjectVercelUrl(project);
   const createdAtValue = project.createdAt || project.created_at;
   const createdDate = createdAtValue ? new Date(createdAtValue) : null;
   const createdDateLabel = createdDate && !Number.isNaN(createdDate.getTime())
@@ -73,6 +84,10 @@ function ProjectCard({ project }) {
     : 'Unknown date';
   const displayStatus = getProjectStatus(project);
   const databaseConnected = isDatabaseConnected(project);
+
+  useEffect(() => {
+    setPreviewFailed(false);
+  }, [previewUrl]);
 
   const handleDownloadProject = async () => {
     setDownloading(true);
@@ -93,7 +108,6 @@ function ProjectCard({ project }) {
   };
 
   const handleShareStore = async () => {
-    const deployedUrl = getProjectVercelUrl(project);
     if (!deployedUrl) {
       toast.error('This store is not deployed yet');
       return;
@@ -109,16 +123,20 @@ function ProjectCard({ project }) {
 
   return (
     <div className="group rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-white/20 transition-all">
-      <div className="h-36 rounded-xl bg-white/5 mb-4 overflow-hidden flex items-center justify-center text-gray-600 text-sm">
-        {previewUrl ? (
+      <div className="relative h-36 rounded-xl bg-white/5 mb-4 overflow-hidden flex items-center justify-center text-gray-600 text-sm">
+        {previewUrl && !previewFailed ? (
           <img
             src={previewUrl}
             alt={`${project.name} preview`}
             className="h-full w-full object-cover"
             loading="lazy"
+            onError={() => setPreviewFailed(true)}
           />
         ) : (
-          'No preview yet'
+          <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.02] px-6 text-center">
+            <p className="text-sm font-medium text-gray-300">{project.name}</p>
+            <p className="mt-1 text-xs text-gray-500">Thumbnail is being generated</p>
+          </div>
         )}
       </div>
       <div className="flex items-start justify-between mb-2">
@@ -152,9 +170,9 @@ function ProjectCard({ project }) {
         </Link>
         <button
           onClick={handleShareStore}
-          disabled={!getProjectVercelUrl(project)}
+          disabled={!deployedUrl}
           className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10 disabled:opacity-45 disabled:cursor-not-allowed"
-          title={getProjectVercelUrl(project) || 'Deploy this store before sharing'}
+          title={deployedUrl || 'Deploy this store before sharing'}
         >
           <Share2 size={12} /> Share
         </button>
@@ -187,8 +205,11 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
+    let mounted = true;
+
     projectsService.list()
       .then((res) => {
+         if (!mounted) return;
          const items = res.data.items || res.data || [];
          const sortedProjects = [...items].sort((a, b) => {
            const aTime = new Date(a.createdAt ?? a.created_at ?? 0).getTime();
@@ -198,7 +219,13 @@ export default function DashboardPage() {
          setProjects(sortedProjects);
       })
       .catch((err) => console.error("Failed to load projects", err))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [setProjects]);
 
   const filteredProjects = useMemo(() => {
