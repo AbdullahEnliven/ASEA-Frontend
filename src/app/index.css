@@ -1,5 +1,47 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap");
 
 body {
-  @apply bg-[#0a0a0a] text-white antialiased;
+  @apply bg-[#f6f1e8] text-[#10131b] antialiased;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: "Space Grotesk", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: #0f766e;
+  color: #fffaf0;
+}
+
+.asea-logo-track {
+  animation: asea-logo-scroll 26s linear infinite;
+}
+
+.asea-logo-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes asea-logo-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asea-logo-track {
+    animation: none;
+    transform: translateX(0);
+  }
 }
