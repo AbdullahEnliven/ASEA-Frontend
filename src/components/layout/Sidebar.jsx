@@ -1,20 +1,21 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  FolderOpen,
-  User,
-  CreditCard,
   BookOpen,
+  CreditCard,
+  FolderOpen,
+  LayoutDashboard,
+  Layers3,
   PanelLeftClose,
   PanelLeftOpen,
+  User,
 } from 'lucide-react';
-import { useState } from 'react';
 
 const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/projects/new', icon: FolderOpen, label: 'New Project' },
-  { to: '/account', icon: User, label: 'Account' },
-  { to: '/account/billing', icon: CreditCard, label: 'Billing' },
+  { to: '/dashboard', glyph: <LayoutDashboard size={18} />, label: 'Dashboard' },
+  { to: '/projects/new', glyph: <FolderOpen size={18} />, label: 'New Project' },
+  { to: '/account', glyph: <User size={18} />, label: 'Account' },
+  { to: '/account/billing', glyph: <CreditCard size={18} />, label: 'Billing' },
 ];
 
 export default function Sidebar() {
@@ -22,49 +23,57 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`sticky top-0 h-screen flex flex-col border-r border-white/10 bg-[#0a0a0a] transition-all duration-200
-        ${collapsed ? 'w-16' : 'w-60'}`}
+      className={`sticky top-0 hidden h-screen flex-col border-r border-[#d8d0c0] bg-[#fffaf0] shadow-[12px_0_40px_rgba(22,24,31,0.04)] transition-all duration-200 md:flex
+        ${collapsed ? 'w-16' : 'w-64'}`}
     >
-      {/* Logo */}
-      <div className="flex items-center h-16 px-4 border-b border-white/10">
+      <div className="flex h-16 items-center border-b border-[#d8d0c0] px-4">
         {!collapsed && (
-          <span className="text-xl font-bold tracking-tighter">ASEA</span>
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#10131b] text-white">
+              <Layers3 className="h-5 w-5" />
+            </span>
+            <span className="leading-none">
+              <span className="block text-xl font-black tracking-tight text-[#10131b]">ASEA</span>
+              <span className="mt-1 block text-[10px] font-black uppercase tracking-[0.2em] text-[#0f766e]">
+                build room
+              </span>
+            </span>
+          </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className={`p-1.5 text-gray-400 hover:text-white transition-colors ${collapsed ? 'mx-auto' : 'ml-auto'}`}
+          className={`rounded-lg border border-[#d8d0c0] bg-white p-1.5 text-[#6f766f] transition hover:border-[#10131b] hover:text-[#10131b] ${collapsed ? 'mx-auto' : 'ml-auto'}`}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
         </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-4 px-2 space-y-1">
-        {navItems.map(({ to, icon: Icon, label }) => (
+      <nav className="flex-1 space-y-1 px-2 py-4">
+        {navItems.map(({ to, glyph, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors
+              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-black transition-colors
               ${isActive
-                ? 'bg-white/10 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                ? 'bg-[#10131b] text-white'
+                : 'text-[#5c6270] hover:bg-[#f6f1e8] hover:text-[#10131b]'
               }
               ${collapsed ? 'justify-center' : ''}`
             }
             title={collapsed ? label : undefined}
           >
-            <Icon size={18} />
+            {glyph}
             {!collapsed && <span>{label}</span>}
           </NavLink>
         ))}
       </nav>
 
-      {/* Docs link */}
-      <div className="p-2 border-t border-white/10">
+      <div className="border-t border-[#d8d0c0] p-2">
         <a
           href="#"
-          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors
+          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-black text-[#5c6270] transition-colors hover:bg-[#f6f1e8] hover:text-[#10131b]
             ${collapsed ? 'justify-center' : ''}`}
           title={collapsed ? 'Docs' : undefined}
         >

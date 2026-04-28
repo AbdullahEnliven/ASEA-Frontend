@@ -1,11 +1,22 @@
 import { forwardRef } from 'react';
 
 const Input = forwardRef(
-  ({ label, error, className = '', rightElement = null, ...props }, ref) => {
+  (
+    {
+      label,
+      error,
+      className = '',
+      labelClassName = '',
+      errorClassName = '',
+      rightElement = null,
+      ...props
+    },
+    ref
+  ) => {
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">
+          <label className={`block text-sm font-medium text-gray-300 mb-1.5 ${labelClassName}`}>
             {label}
           </label>
         )}
@@ -27,7 +38,7 @@ const Input = forwardRef(
           )}
         </div>
         {error && (
-          <p className="mt-1 text-xs text-red-400">{error}</p>
+          <p className={`mt-1 text-xs text-red-400 ${errorClassName}`}>{error}</p>
         )}
       </div>
     );

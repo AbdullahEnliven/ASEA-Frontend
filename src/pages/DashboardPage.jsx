@@ -1,28 +1,39 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Plus,
+  Boxes,
+  Code2,
+  DatabaseZap,
+  Download,
+  ExternalLink,
+  HardDrive,
   LayoutGrid,
   List,
-  Trash2,
-  ExternalLink,
-  Download,
-  Code2,
+  Plus,
+  Rocket,
   Search,
-  SlidersHorizontal,
-  X,
   Share2,
+  SlidersHorizontal,
+  Trash2,
+  X,
 } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
-import { projectsService } from '@/services/projects.service';
-import { Button, Badge } from '@/components/common';
-import useProjectsStore from '@/store/projects.store';
 import toast from 'react-hot-toast';
+import { Badge, Button } from '@/components/common';
+import { projectsService } from '@/services/projects.service';
+import useProjectsStore from '@/store/projects.store';
 
 const statusVariant = {
   draft: 'default',
   generating: 'warning',
   ready: 'success',
   deployed: 'info',
+};
+
+const statusStyles = {
+  draft: '!bg-[#e6e9f2] !text-[#343945]',
+  generating: '!bg-[#fff2c7] !text-[#8a5b08]',
+  ready: '!bg-[#dff7f1] !text-[#0f766e]',
+  deployed: '!bg-[#dff7f1] !text-[#0f766e]',
 };
 
 const getProjectStorageBytes = (project) => {
@@ -68,52 +79,26 @@ function DashboardSkeleton() {
   const projectSkeletons = ['project-1', 'project-2', 'project-3'];
 
   return (
-    <div className="max-w-7xl mx-auto animate-pulse" aria-label="Loading dashboard">
-      <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-3">
+    <div className="mx-auto max-w-7xl animate-pulse" aria-label="Loading dashboard">
+      <div className="mb-8 h-56 rounded-lg border border-[#d8d0c0] bg-[#fffaf0]" />
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {statSkeletons.map((item) => (
-          <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-            <div className="h-4 w-28 rounded bg-white/10" />
-            <div className="mt-3 h-8 w-16 rounded bg-white/15" />
+          <div key={item} className="rounded-lg border border-[#d8d0c0] bg-white p-5">
+            <div className="h-4 w-28 rounded bg-[#e4dccf]" />
+            <div className="mt-3 h-8 w-16 rounded bg-[#d8d0c0]" />
           </div>
         ))}
       </div>
-
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="h-7 w-28 rounded bg-white/15" />
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] sm:w-72" />
-          <div className="h-10 w-24 rounded-lg border border-white/10 bg-white/[0.03]" />
-          <div className="h-10 w-20 rounded-lg border border-white/10 bg-white/[0.03]" />
-          <div className="h-10 w-32 rounded-full bg-white/15" />
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {projectSkeletons.map((item) => (
-          <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-            <div className="mb-4 flex h-28 items-center gap-4 rounded-xl border border-white/10 bg-[#111] px-5">
-              <div className="h-14 w-14 rounded-xl bg-white/10" />
-              <div className="min-w-0 flex-1">
-                <div className="h-4 w-3/5 rounded bg-white/15" />
-                <div className="mt-3 h-3 w-2/5 rounded bg-white/10" />
-              </div>
-            </div>
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="h-5 w-2/5 rounded bg-white/15" />
-                <div className="mt-2 h-3 w-20 rounded bg-white/10" />
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <div className="h-6 w-20 rounded-full bg-white/10" />
-                <div className="h-6 w-36 rounded-full bg-white/10" />
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <div className="h-9 w-20 rounded-lg bg-white/10" />
-              <div className="h-9 w-20 rounded-lg bg-white/10" />
-              <div className="h-9 w-20 rounded-lg bg-white/10" />
-              <div className="h-9 w-24 rounded-lg bg-white/10" />
-              <div className="ml-auto h-9 w-10 rounded-lg bg-white/10" />
+          <div key={item} className="rounded-lg border border-[#d8d0c0] bg-white p-5">
+            <div className="mb-5 h-32 rounded-lg bg-[#f1eadf]" />
+            <div className="h-5 w-2/5 rounded bg-[#d8d0c0]" />
+            <div className="mt-3 h-3 w-28 rounded bg-[#e4dccf]" />
+            <div className="mt-6 flex gap-2">
+              <div className="h-9 w-20 rounded-lg bg-[#e4dccf]" />
+              <div className="h-9 w-20 rounded-lg bg-[#e4dccf]" />
+              <div className="h-9 w-24 rounded-lg bg-[#e4dccf]" />
             </div>
           </div>
         ))}
@@ -122,7 +107,7 @@ function DashboardSkeleton() {
   );
 }
 
-function ProjectCard({ project }) {
+function ProjectCard({ project, listView = false }) {
   const [downloading, setDownloading] = useState(false);
   const deployedUrl = getProjectVercelUrl(project);
   const createdAtValue = project.createdAt || project.created_at;
@@ -172,65 +157,83 @@ function ProjectCard({ project }) {
   };
 
   return (
-    <div className="group rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-white/20 transition-all">
-      <div className="relative mb-4 flex h-28 items-center gap-4 overflow-hidden rounded-xl border border-white/10 bg-[#111] px-5">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-lg font-bold text-blue-300">
-          {initials}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">{project.name}</p>
-          <p className="mt-1 text-xs text-gray-500">{displayStatus === 'deployed' ? 'Vercel store' : 'Project workspace'}</p>
-        </div>
-      </div>
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <h3 className="font-semibold text-white">{project.name}</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {createdDateLabel}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-1.5">
-          <Badge variant={statusVariant[displayStatus] || 'default'}>
-            {displayStatus}
-          </Badge>
-          <Badge variant={databaseConnected ? 'success' : 'danger'}>
-            {databaseConnected ? 'database connected' : 'database not connected'}
-          </Badge>
+    <article
+      className={`group rounded-lg border border-[#d8d0c0] bg-white p-5 shadow-[0_18px_55px_rgba(22,24,31,0.06)] transition hover:-translate-y-1 hover:border-[#10131b] ${
+        listView ? 'lg:flex lg:items-center lg:gap-5' : ''
+      }`}
+    >
+      <div
+        className={`relative mb-5 overflow-hidden rounded-lg border border-[#d8d0c0] bg-[#f7f2e8] p-5 ${
+          listView ? 'lg:mb-0 lg:w-72 lg:shrink-0' : ''
+        }`}
+      >
+        <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-[#dff7f1]" />
+        <div className="relative flex items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#10131b] text-lg font-black text-white">
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-black text-[#10131b]">{project.name}</p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#6f766f]">
+              {displayStatus === 'deployed' ? 'Live store' : 'Workspace'}
+            </p>
+          </div>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 mt-4">
-        <Link
-          to={`/projects/${project.id}`}
-          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10"
-        >
-          <ExternalLink size={12} /> Open
-        </Link>
-        <Link
-          to={`/projects/${project.id}/code`}
-          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10"
-        >
-          <Code2 size={12} /> Code
-        </Link>
-        <button
-          onClick={handleShareStore}
-          disabled={!deployedUrl}
-          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10 disabled:opacity-45 disabled:cursor-not-allowed"
-          title={deployedUrl || 'Deploy this store before sharing'}
-        >
-          <Share2 size={12} /> Share
-        </button>
-        <button
-          onClick={handleDownloadProject}
-          disabled={downloading}
-          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          <Download size={12} /> {downloading ? 'Downloading...' : 'Download'}
-        </button>
-        <button className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 ml-auto">
-          <Trash2 size={12} />
-        </button>
+
+      <div className="min-w-0 flex-1">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h3 className="truncate text-lg font-black text-[#10131b]">{project.name}</h3>
+            <p className="mt-1 text-sm font-bold text-[#6f766f]">Created {createdDateLabel}</p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <Badge variant={statusVariant[displayStatus] || 'default'} className={`!font-black ${statusStyles[displayStatus] || statusStyles.draft}`}>
+              {displayStatus || 'draft'}
+            </Badge>
+            <Badge
+              variant={databaseConnected ? 'success' : 'danger'}
+              className={`!font-black ${databaseConnected ? '!bg-[#dff7f1] !text-[#0f766e]' : '!bg-[#ffe6df] !text-[#ba4d41]'}`}
+            >
+              {databaseConnected ? 'database connected' : 'database needed'}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to={`/projects/${project.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#10131b] px-3 py-2 text-xs font-black text-white transition hover:bg-[#253044]"
+          >
+            <ExternalLink size={12} /> Open
+          </Link>
+          <Link
+            to={`/projects/${project.id}/code`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#d8d0c0] bg-[#fffaf0] px-3 py-2 text-xs font-black text-[#343945] transition hover:border-[#10131b]"
+          >
+            <Code2 size={12} /> Code
+          </Link>
+          <button
+            onClick={handleShareStore}
+            disabled={!deployedUrl}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#d8d0c0] bg-[#fffaf0] px-3 py-2 text-xs font-black text-[#343945] transition hover:border-[#10131b] disabled:cursor-not-allowed disabled:opacity-45"
+            title={deployedUrl || 'Deploy this store before sharing'}
+          >
+            <Share2 size={12} /> Share
+          </button>
+          <button
+            onClick={handleDownloadProject}
+            disabled={downloading}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#d8d0c0] bg-[#fffaf0] px-3 py-2 text-xs font-black text-[#343945] transition hover:border-[#10131b] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Download size={12} /> {downloading ? 'Downloading...' : 'Download'}
+          </button>
+          <button className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-[#f0c9c1] bg-[#fff4f1] px-3 py-2 text-xs font-black text-[#ba4d41] transition hover:bg-[#ffe6df]">
+            <Trash2 size={12} />
+          </button>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -252,16 +255,16 @@ export default function DashboardPage() {
 
     projectsService.list()
       .then((res) => {
-         if (!mounted) return;
-         const items = res.data.items || res.data || [];
-         const sortedProjects = [...items].sort((a, b) => {
-           const aTime = new Date(a.createdAt ?? a.created_at ?? 0).getTime();
-           const bTime = new Date(b.createdAt ?? b.created_at ?? 0).getTime();
-           return bTime - aTime;
-         });
-         setProjects(sortedProjects);
+        if (!mounted) return;
+        const items = res.data.items || res.data || [];
+        const sortedProjects = [...items].sort((a, b) => {
+          const aTime = new Date(a.createdAt ?? a.created_at ?? 0).getTime();
+          const bTime = new Date(b.createdAt ?? b.created_at ?? 0).getTime();
+          return bTime - aTime;
+        });
+        setProjects(sortedProjects);
       })
-      .catch((err) => console.error("Failed to load projects", err))
+      .catch((err) => console.error('Failed to load projects', err))
       .finally(() => {
         if (mounted) setLoading(false);
       });
@@ -316,88 +319,162 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  const storesLive = projects.filter((project) => {
-    return isProjectLive(project);
-  }).length;
+  const storesLive = projects.filter((project) => isProjectLive(project)).length;
   const storageUsed = projects.reduce(
     (total, project) => total + getProjectStorageBytes(project),
     0
   );
+  const databaseReady = projects.filter((project) => isDatabaseConnected(project)).length;
+
+  const statCards = [
+    { label: 'Total projects', value: projects.length, glyph: <Boxes size={18} />, helper: 'Workspaces generated' },
+    { label: 'Stores live', value: storesLive, glyph: <Rocket size={18} />, helper: 'Ready for customers' },
+    { label: 'Storage used', value: formatBytes(storageUsed), glyph: <HardDrive size={18} />, helper: 'Across all projects' },
+  ];
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {[
-          { label: 'Total Projects', value: projects.length },
-          { label: 'Stores Live', value: storesLive },
-          { label: 'Storage Used', value: formatBytes(storageUsed) },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border border-white/10 bg-white/[0.02] p-5"
-          >
-            <p className="text-sm text-gray-400">{stat.label}</p>
-            <p className="text-2xl font-bold mt-1">{stat.value}</p>
+    <div className="mx-auto max-w-7xl text-[#10131b]">
+      <section className="mb-8 overflow-hidden rounded-lg border border-[#d8d0c0] bg-[#fffaf0] shadow-[0_20px_70px_rgba(22,24,31,0.08)]">
+        <div className="grid gap-8 p-6 lg:grid-cols-[1fr_22rem] lg:p-8">
+          <div>
+            <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-[#0f766e]">Dashboard</p>
+            <h1 className="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">
+              Manage the stores ASEA helped you build.
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-[#5c6270]">
+              Track generated projects, deployment readiness, database connections, exports, and the next launch action from one focused workspace.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link to="/projects/new">
+                <Button className="!rounded-lg !bg-[#10131b] px-5 py-3 font-black !text-white hover:!bg-[#253044]">
+                  <Plus size={16} />
+                  New project
+                </Button>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#d8d0c0] bg-white px-5 py-3 text-sm font-black text-[#10131b] transition hover:border-[#10131b]"
+              >
+                <SlidersHorizontal size={16} />
+                Tune view
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-[#10131b] p-5 text-white">
+            <div className="mb-8 flex items-center justify-between">
+              <span className="rounded-lg bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#10131b]">
+                Launch health
+              </span>
+              <DatabaseZap className="h-6 w-6 text-[#f2b84b]" />
+            </div>
+            <div className="space-y-5">
+              <div>
+                <div className="mb-2 flex justify-between text-sm font-black">
+                  <span>Database connected</span>
+                  <span>{databaseReady}/{projects.length || 0}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-[#0f766e]"
+                    style={{ width: `${projects.length ? (databaseReady / projects.length) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-white/10 bg-white/8 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-white/48">Live</p>
+                  <p className="mt-2 text-3xl font-black">{storesLive}</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/8 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-white/48">Drafts</p>
+                  <p className="mt-2 text-3xl font-black">{Math.max(projects.length - storesLive, 0)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {statCards.map(({ label, value, glyph, helper }) => (
+          <div key={label} className="rounded-lg border border-[#d8d0c0] bg-white p-5 shadow-[0_14px_45px_rgba(22,24,31,0.05)]">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <p className="text-sm font-black uppercase tracking-[0.14em] text-[#6f766f]">{label}</p>
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#dff7f1] text-[#0f766e]">
+                {glyph}
+              </span>
+            </div>
+            <p className="text-3xl font-black tracking-tight text-[#10131b]">{value}</p>
+            <p className="mt-2 text-sm font-bold text-[#6f766f]">{helper}</p>
           </div>
         ))}
       </div>
 
-      {/* Header */}
-      <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-between">
-        <h1 className="text-xl font-bold">Projects</h1>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative w-full sm:w-72">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input
-              value={filters.query}
-              onChange={(e) => setFilters((current) => ({ ...current, query: e.target.value }))}
-              placeholder="Search projects"
-              className="w-full rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-9 pr-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-blue-500/40"
-            />
+      <div className="mb-6 rounded-lg border border-[#d8d0c0] bg-[#fffaf0] p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-2xl font-black tracking-tight">Projects</h2>
+            <p className="mt-1 text-sm font-bold text-[#6f766f]">
+              {filteredProjects.length} visible of {projects.length} total
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setFiltersOpen((current) => !current)}
-            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
-              filtersOpen || hasActiveFilters
-                ? 'border-blue-500/40 bg-blue-500/10 text-blue-300'
-                : 'border-white/10 bg-white/[0.03] text-gray-300 hover:bg-white/10'
-            }`}
-          >
-            <SlidersHorizontal size={15} /> Filters
-          </button>
-          <div className="flex rounded-lg border border-white/10 overflow-hidden">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative w-full sm:w-72">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b8174]" />
+              <input
+                value={filters.query}
+                onChange={(e) => setFilters((current) => ({ ...current, query: e.target.value }))}
+                placeholder="Search projects"
+                className="w-full rounded-lg border border-[#d8d0c0] bg-white py-2.5 pl-9 pr-3 text-sm font-bold text-[#10131b] outline-none placeholder:text-[#9a9387] focus:border-[#0f766e] focus:ring-1 focus:ring-[#0f766e]/20"
+              />
+            </div>
             <button
-              onClick={() => setView('grid')}
-              className={`p-2 ${view === 'grid' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}
+              type="button"
+              onClick={() => setFiltersOpen((current) => !current)}
+              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-black transition-colors ${
+                filtersOpen || hasActiveFilters
+                  ? 'border-[#0f766e]/35 bg-[#dff7f1] text-[#0f766e]'
+                  : 'border-[#d8d0c0] bg-white text-[#343945] hover:border-[#10131b]'
+              }`}
             >
-              <LayoutGrid size={16} />
+              <SlidersHorizontal size={15} /> Filters
             </button>
-            <button
-              onClick={() => setView('list')}
-              className={`p-2 ${view === 'list' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}
-            >
-              <List size={16} />
-            </button>
+            <div className="flex overflow-hidden rounded-lg border border-[#d8d0c0] bg-white">
+              <button
+                onClick={() => setView('grid')}
+                className={`p-2.5 ${view === 'grid' ? 'bg-[#10131b] text-white' : 'text-[#6f766f] hover:text-[#10131b]'}`}
+                aria-label="Grid view"
+              >
+                <LayoutGrid size={16} />
+              </button>
+              <button
+                onClick={() => setView('list')}
+                className={`p-2.5 ${view === 'list' ? 'bg-[#10131b] text-white' : 'text-[#6f766f] hover:text-[#10131b]'}`}
+                aria-label="List view"
+              >
+                <List size={16} />
+              </button>
+            </div>
+            <Link to="/projects/new">
+              <Button size="md" className="!rounded-lg !bg-[#10131b] px-4 py-2.5 font-black !text-white hover:!bg-[#253044]">
+                <Plus size={16} /> New project
+              </Button>
+            </Link>
           </div>
-          <Link to="/projects/new">
-            <Button size="md">
-              <Plus size={16} /> New Project
-            </Button>
-          </Link>
         </div>
       </div>
 
       {filtersOpen && (
-        <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <div className="mb-6 rounded-lg border border-[#d8d0c0] bg-white p-4 shadow-[0_14px_45px_rgba(22,24,31,0.05)]">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <label className="space-y-1.5">
-              <span className="text-xs font-medium text-gray-400">Deployment</span>
+              <span className="text-xs font-black uppercase tracking-[0.14em] text-[#6f766f]">Deployment</span>
               <select
                 value={filters.deployment}
                 onChange={(e) => setFilters((current) => ({ ...current, deployment: e.target.value }))}
-                className="w-full rounded-lg border border-white/10 bg-[#111] px-3 py-2 text-sm text-white outline-none focus:border-blue-500/40"
+                className="w-full rounded-lg border border-[#d8d0c0] bg-[#fffaf0] px-3 py-2 text-sm font-bold text-[#10131b] outline-none focus:border-[#0f766e]"
               >
                 <option value="all">All statuses</option>
                 <option value="deployed">Deployed</option>
@@ -407,11 +484,11 @@ export default function DashboardPage() {
               </select>
             </label>
             <label className="space-y-1.5">
-              <span className="text-xs font-medium text-gray-400">Database</span>
+              <span className="text-xs font-black uppercase tracking-[0.14em] text-[#6f766f]">Database</span>
               <select
                 value={filters.database}
                 onChange={(e) => setFilters((current) => ({ ...current, database: e.target.value }))}
-                className="w-full rounded-lg border border-white/10 bg-[#111] px-3 py-2 text-sm text-white outline-none focus:border-blue-500/40"
+                className="w-full rounded-lg border border-[#d8d0c0] bg-[#fffaf0] px-3 py-2 text-sm font-bold text-[#10131b] outline-none focus:border-[#0f766e]"
               >
                 <option value="all">All database states</option>
                 <option value="connected">Connected</option>
@@ -419,11 +496,11 @@ export default function DashboardPage() {
               </select>
             </label>
             <label className="space-y-1.5">
-              <span className="text-xs font-medium text-gray-400">Sort</span>
+              <span className="text-xs font-black uppercase tracking-[0.14em] text-[#6f766f]">Sort</span>
               <select
                 value={filters.sort}
                 onChange={(e) => setFilters((current) => ({ ...current, sort: e.target.value }))}
-                className="w-full rounded-lg border border-white/10 bg-[#111] px-3 py-2 text-sm text-white outline-none focus:border-blue-500/40"
+                className="w-full rounded-lg border border-[#d8d0c0] bg-[#fffaf0] px-3 py-2 text-sm font-bold text-[#10131b] outline-none focus:border-[#0f766e]"
               >
                 <option value="newest">Newest first</option>
                 <option value="oldest">Oldest first</option>
@@ -436,7 +513,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={resetFilters}
                 disabled={!hasActiveFilters}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-300 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#d8d0c0] bg-[#fffaf0] px-3 py-2 text-sm font-black text-[#343945] transition-colors hover:border-[#10131b] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <X size={15} /> Clear filters
               </button>
@@ -445,32 +522,36 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Projects */}
       {projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
-            <Plus size={32} className="text-gray-600" />
+        <div className="flex flex-col items-center justify-center rounded-lg border border-[#d8d0c0] bg-[#fffaf0] px-6 py-24 text-center">
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-lg bg-[#dff7f1] text-[#0f766e]">
+            <Plus size={32} />
           </div>
-          <h2 className="text-lg font-semibold mb-2">No projects yet</h2>
-          <p className="text-sm text-gray-400 mb-6 max-w-xs">
-            Create your first AI-generated e-commerce store in minutes.
+          <h2 className="mb-2 text-2xl font-black">No projects yet</h2>
+          <p className="mb-7 max-w-sm text-sm leading-6 text-[#5c6270]">
+            Create your first AI-generated e-commerce store and manage the launch here.
           </p>
           <Link to="/projects/new">
-            <Button size="lg">
-              <Plus size={18} /> Create Your First Store
+            <Button size="lg" className="!rounded-lg !bg-[#10131b] font-black !text-white hover:!bg-[#253044]">
+              <Plus size={18} /> Create your first store
             </Button>
           </Link>
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
-            <SlidersHorizontal size={30} className="text-gray-600" />
+        <div className="flex flex-col items-center justify-center rounded-lg border border-[#d8d0c0] bg-[#fffaf0] px-6 py-20 text-center">
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-lg bg-[#fff2c7] text-[#9a6a0a]">
+            <SlidersHorizontal size={30} />
           </div>
-          <h2 className="text-lg font-semibold mb-2">No matching projects</h2>
-          <p className="text-sm text-gray-400 mb-6 max-w-xs">
+          <h2 className="mb-2 text-2xl font-black">No matching projects</h2>
+          <p className="mb-7 max-w-sm text-sm leading-6 text-[#5c6270]">
             Adjust your filters to see more stores.
           </p>
-          <Button size="md" variant="secondary" onClick={resetFilters}>
+          <Button
+            size="md"
+            variant="secondary"
+            className="!rounded-lg !border-[#d8d0c0] !bg-white font-black !text-[#10131b] hover:!bg-[#f6f1e8]"
+            onClick={resetFilters}
+          >
             <X size={16} /> Clear filters
           </Button>
         </div>
@@ -478,12 +559,12 @@ export default function DashboardPage() {
         <div
           className={
             view === 'grid'
-              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'
-              : 'space-y-3'
+              ? 'grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3'
+              : 'space-y-4'
           }
         >
           {filteredProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard key={project.id} project={project} listView={view === 'list'} />
           ))}
         </div>
       )}

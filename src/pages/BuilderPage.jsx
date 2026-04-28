@@ -167,31 +167,34 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
   };
 
   return (
-    <div className="flex items-center justify-between h-14 px-4 border-b border-white/10 bg-[#0e0e0e] text-white">
-      <div className="flex items-center gap-4 min-w-[280px]">
+    <div className="flex h-16 items-center justify-between gap-4 border-b border-[#d8d0c0] bg-[#fffaf0]/95 px-4 text-[#10131b] shadow-[0_10px_32px_rgba(16,19,27,0.08)] backdrop-blur">
+      <div className="flex min-w-[300px] items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#d8d0c0] bg-[#10131b] text-sm font-black text-[#f6c453] shadow-[0_12px_24px_rgba(16,19,27,0.16)]">
+          A
+        </div>
         <div className="flex flex-col">
-          <div className="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 -ml-1 rounded transition-colors">
-            <span className="text-sm font-semibold truncate leading-tight mt-1">
+          <div className="flex cursor-pointer items-center gap-2 rounded-lg p-1 -ml-1 transition-colors hover:bg-[#efe6d6]">
+            <span className="max-w-[230px] truncate text-sm font-black leading-tight tracking-[-0.01em]">
               {activeProject?.name || 'Untitled Store'}
             </span>
-            <ChevronDown size={14} className="text-gray-400 mt-1" />
+            <ChevronDown size={14} className="text-[#8b8174]" />
           </div>
-          <span className="text-[10px] text-gray-500">Previewing last saved version</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#007f75]">Launch workspace</span>
         </div>
       </div>
 
-      <div className="flex-1 flex justify-center items-center gap-2">
+      <div className="flex flex-1 items-center justify-center gap-2">
          {/* Top middle controls akin to Lovable */}
-         <div className="flex bg-[#1a1a1a] rounded-lg p-1 border border-white/10">
+         <div className="flex rounded-lg border border-[#d8d0c0] bg-[#f6f1e8] p-1 shadow-inner">
             <button
               onClick={() => setViewMode('preview')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === 'preview' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-black transition-colors ${viewMode === 'preview' ? 'bg-[#10131b] text-white shadow-sm' : 'text-[#5d6472] hover:bg-white hover:text-[#10131b]'}`}
             >
               <Eye size={14} /> Preview
             </button>
             <button
               onClick={() => setViewMode('code')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${viewMode === 'code' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-black transition-colors ${viewMode === 'code' ? 'bg-[#10131b] text-white shadow-sm' : 'text-[#5d6472] hover:bg-white hover:text-[#10131b]'}`}
             >
               <Code2 size={14} /> Code
             </button>
@@ -199,12 +202,12 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
 
          {/* Device toggles placed central */}
          {viewMode === 'preview' && (
-           <div className="flex bg-[#1a1a1a] rounded-lg p-1 border border-white/10 ml-4">
+           <div className="ml-3 flex rounded-lg border border-[#d8d0c0] bg-[#f6f1e8] p-1 shadow-inner">
              {devices.map(({ mode, icon: Icon }) => (
                <button
                  key={mode}
                  onClick={() => setDeviceMode(mode)}
-                 className={`p-1.5 px-3 rounded-md transition-colors ${deviceMode === mode ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
+                 className={`rounded-md p-1.5 px-3 transition-colors ${deviceMode === mode ? 'bg-white text-[#10131b] shadow-sm' : 'text-[#8b8174] hover:bg-white hover:text-[#10131b]'}`}
                  title={mode}
                >
                  <Icon size={14} />
@@ -212,7 +215,7 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
              ))}
              <button
                onClick={() => setEditMode(!editMode)}
-               className={`p-1.5 px-3 ml-1 border-l border-white/5 transition-colors ${editMode ? 'text-blue-400' : 'text-zinc-500 hover:text-white'}`}
+               className={`ml-1 border-l border-[#d8d0c0] p-1.5 px-3 transition-colors ${editMode ? 'text-[#007f75]' : 'text-[#8b8174] hover:text-[#10131b]'}`}
                title="Visual Edit Mode"
              >
                <Pencil size={14} />
@@ -225,28 +228,28 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
         {!checkingSupabase && !supabaseConnected && activeProject?.id && (
           <Link
             to={`/projects/${activeProject.id}/deploy?tab=supabase`}
-            className="inline-flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-[#c8931f]/40 bg-[#fff2cb] px-3 py-1.5 text-[11px] font-black text-[#8a5d00] transition-colors hover:bg-[#ffe8a3]"
             title="Connect backend database"
           >
             <Database size={13} />
-            Warning: Connect backend (Supabase)
+            Connect Supabase
           </Link>
         )}
         <button
           onClick={handleDownloadCode}
           disabled={downloading}
-          className="text-gray-400 hover:text-white text-xs font-medium flex items-center gap-1.5 px-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-black text-[#5d6472] transition-colors hover:border-[#d8d0c0] hover:bg-white hover:text-[#10131b] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Download size={14} />
           {downloading ? 'Downloading...' : 'Download Code'}
         </button>
-        <button className="text-gray-400 hover:text-white text-xs font-medium flex items-center gap-1.5 px-2">
+        <button className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-black text-[#5d6472] transition-colors hover:border-[#d8d0c0] hover:bg-white hover:text-[#10131b]">
           Share
         </button>
         {activeProject?.id ? (
           <Link
             to={`/projects/${activeProject.id}/deploy?tab=github`}
-            className="text-gray-400 hover:text-white text-xs font-medium flex items-center gap-1.5 px-2"
+            className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-black text-[#5d6472] transition-colors hover:border-[#d8d0c0] hover:bg-white hover:text-[#10131b]"
           >
             GitHub
           </Link>
@@ -254,18 +257,18 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
           <button
             type="button"
             disabled
-            className="text-gray-500 text-xs font-medium flex items-center gap-1.5 px-2 cursor-not-allowed"
+            className="flex cursor-not-allowed items-center gap-1.5 px-2 text-xs font-black text-[#a9a094]"
           >
             GitHub
           </button>
         )}
-        <Button variant="secondary" size="sm" className="bg-[#1a1a1a] border-white/10 text-white hover:bg-[#2a2a2a]">
-          <Rocket size={13} className="text-purple-400" /> Upgrade
+        <Button variant="secondary" size="sm" className="!border-[#d8d0c0] !bg-white !text-[#10131b] hover:!bg-[#f6f1e8]">
+          <Rocket size={13} className="text-[#007f75]" /> Upgrade
         </Button>
         <div className="flex items-center">
           <Button
             size="sm"
-            className="bg-white text-black border border-gray-300 hover:bg-gray-100"
+            className="!border-[#10131b] !bg-[#10131b] !text-white hover:!bg-[#007f75]"
             onClick={() => {
               setSubdomainError('');
               setDeployModalOpen(true);
@@ -286,13 +289,13 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
               if (!deploying) setDeployModalOpen(false);
             }}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#111] p-5 shadow-2xl">
-            <h3 className="text-base font-semibold text-white">Choose your custom URL</h3>
-            <p className="mt-1 text-xs text-gray-400">
+          <div className="relative w-full max-w-md rounded-2xl border border-[#d8d0c0] bg-[#fffaf0] p-5 text-[#10131b] shadow-2xl">
+            <h3 className="text-base font-black">Choose your custom URL</h3>
+            <p className="mt-1 text-xs text-[#5d6472]">
               Pick a Vercel subdomain. If left empty, we use your store name.
             </p>
 
-            <div className="mt-4 rounded-xl border border-white/10 bg-[#0b0b0b] flex items-center overflow-hidden">
+            <div className="mt-4 flex items-center overflow-hidden rounded-xl border border-[#d8d0c0] bg-white">
               <input
                 value={customSubdomain}
                 onChange={(e) => {
@@ -300,14 +303,14 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
                   setSubdomainError('');
                 }}
                 placeholder="my-awesome-store"
-                className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white outline-none"
+                className="flex-1 bg-transparent px-3 py-2.5 text-sm font-semibold text-[#10131b] outline-none placeholder:text-[#a9a094]"
                 disabled={deploying}
               />
-              <span className="px-3 py-2.5 text-xs text-gray-500 border-l border-white/10">.vercel.app</span>
+              <span className="border-l border-[#d8d0c0] px-3 py-2.5 text-xs font-bold text-[#8b8174]">.vercel.app</span>
             </div>
 
             {!customSubdomain.trim() && (
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-[#8b8174]">
                 Using: {(sanitizeSubdomain(activeProject?.name || '') || `store-${String(activeProject?.id || '').slice(0, 6)}`)}.vercel.app
               </p>
             )}
@@ -318,7 +321,7 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
               <Button
                 variant="secondary"
                 size="sm"
-                className="bg-[#1a1a1a] border-white/10 text-white hover:bg-[#242424]"
+                className="!border-[#d8d0c0] !bg-white !text-[#10131b] hover:!bg-[#f6f1e8]"
                 onClick={() => setDeployModalOpen(false)}
                 disabled={deploying}
               >
@@ -326,7 +329,7 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
               </Button>
               <Button
                 size="sm"
-                className="bg-white text-black border border-gray-300 hover:bg-gray-100"
+                className="!border-[#10131b] !bg-[#10131b] !text-white hover:!bg-[#007f75]"
                 onClick={handleDeploy}
                 loading={deploying}
               >
@@ -361,7 +364,7 @@ function AgentActivityStep({ step, isActive, isLast }) {
       transition={{ duration: 0.2 }}
       className={`flex items-start gap-2.5 py-1.5 ${isLast ? '' : 'opacity-60'}`}
     >
-      <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${config.bg}`}>
+      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-xs ${config.bg}`}>
         {isActive && isLast ? (
           <Loader2 size={12} className={`animate-spin ${config.color}`} />
         ) : (
@@ -370,16 +373,16 @@ function AgentActivityStep({ step, isActive, isLast }) {
       </div>
       <div className="flex-1 min-w-0">
         <span className={`text-xs font-medium ${config.color}`}>{config.label}</span>
-        <p className="text-[11px] text-gray-500 leading-snug truncate">{step.message}</p>
+        <p className="truncate text-[11px] leading-snug text-[#5d6472]">{step.message}</p>
         {step.details?.files_read && (
           <div className="mt-1 flex flex-wrap gap-1">
             {step.details.files_read.slice(0, 4).map((f, i) => (
-              <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500 font-mono">
+              <span key={i} className="rounded bg-[#f6f1e8] px-1.5 py-0.5 font-mono text-[9px] text-[#5d6472]">
                 {f.split('/').pop()}
               </span>
             ))}
             {step.details.files_read.length > 4 && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500">
+              <span className="rounded bg-[#f6f1e8] px-1.5 py-0.5 text-[9px] text-[#5d6472]">
                 +{step.details.files_read.length - 4} more
               </span>
             )}
@@ -388,7 +391,7 @@ function AgentActivityStep({ step, isActive, isLast }) {
         {step.details?.files && (
           <div className="mt-1 flex flex-wrap gap-1">
             {step.details.files.map((f, i) => (
-              <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 font-mono">
+              <span key={i} className="rounded bg-[#dff7ef] px-1.5 py-0.5 font-mono text-[9px] text-[#007f75]">
                 {f.split('/').pop()}
               </span>
             ))}
@@ -411,22 +414,22 @@ function AgentActivityCard({ steps, isActive }) {
       animate={{ opacity: 1, y: 0 }}
       className="w-full"
     >
-      <div className="rounded-xl border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-[#d8d0c0] bg-white shadow-[0_14px_32px_rgba(16,19,27,0.08)]">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors"
+          className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-[#f6f1e8]"
         >
           {isActive ? (
-            <Loader2 size={12} className="animate-spin text-blue-400 shrink-0" />
+            <Loader2 size={12} className="shrink-0 animate-spin text-[#007f75]" />
           ) : (
-            <Sparkles size={12} className="text-emerald-400 shrink-0" />
+            <Sparkles size={12} className="shrink-0 text-[#007f75]" />
           )}
-          <span className="text-[11px] font-medium text-gray-400 flex-1">
+          <span className="flex-1 text-[11px] font-black text-[#343945]">
             {isActive ? 'Agent is working...' : `Completed ${steps.length} steps`}
           </span>
           <ChevronDown
             size={12}
-            className={`text-gray-500 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            className={`text-[#8b8174] transition-transform ${expanded ? 'rotate-180' : ''}`}
           />
         </button>
         <AnimatePresence>
@@ -438,10 +441,10 @@ function AgentActivityCard({ steps, isActive }) {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="px-3 pb-2.5 border-t border-white/[0.04]">
+              <div className="border-t border-[#efe6d6] px-3 pb-2.5">
                 <div className="relative pl-3 mt-2">
                   {/* Vertical connector line */}
-                  <div className="absolute left-[0.35rem] top-2 bottom-2 w-px bg-white/[0.06]" />
+                  <div className="absolute left-[0.35rem] top-2 bottom-2 w-px bg-[#d8d0c0]" />
                   {steps.map((step, i) => (
                     <AgentActivityStep
                       key={`${step.type}-${i}`}
@@ -466,10 +469,10 @@ function FilesModifiedBadge({ files }) {
   if (!files || files.length === 0) return null;
   
   return (
-    <div className="mt-2 pt-2 border-t border-white/[0.06]">
+    <div className="mt-2 border-t border-[#efe6d6] pt-2">
       <button
         onClick={() => setShowAll(!showAll)}
-        className="flex items-center gap-1.5 text-[10px] text-gray-500 hover:text-gray-300 transition-colors"
+        className="flex items-center gap-1.5 text-[10px] font-bold text-[#8b8174] transition-colors hover:text-[#10131b]"
       >
         <FileText size={10} />
         <span>{files.length} file{files.length !== 1 ? 's' : ''} modified</span>
@@ -484,8 +487,8 @@ function FilesModifiedBadge({ files }) {
             className="mt-1.5 flex flex-col gap-1 overflow-hidden"
           >
             {files.map((f, i) => (
-              <span key={i} className="text-[10px] px-2 py-1 rounded-md bg-white/[0.03] text-gray-400 font-mono flex items-center gap-1.5">
-                <Code2 size={9} className="text-blue-400 shrink-0" />
+              <span key={i} className="flex items-center gap-1.5 rounded-md bg-[#f6f1e8] px-2 py-1 font-mono text-[10px] text-[#5d6472]">
+                <Code2 size={9} className="shrink-0 text-[#007f75]" />
                 {f}
               </span>
             ))}
@@ -655,15 +658,55 @@ function ChatSidebar() {
     }
   };
 
+  const promptStarters = [
+    'Improve the product detail page conversion flow.',
+    'Make the checkout feel more premium and trusted.',
+    'Add an admin view for orders and inventory.',
+  ];
+
   return (
-    <div className="w-[340px] flex flex-col bg-[#0e0e0e] border-r border-white/10 h-full relative shrink-0">
+    <div className="relative flex h-full w-[370px] shrink-0 flex-col border-r border-[#d8d0c0] bg-[#fffaf0] text-[#10131b]">
+      <div className="border-b border-[#d8d0c0] px-5 py-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#007f75]">ASEA Copilot</p>
+            <h2 className="mt-1 text-xl font-black tracking-[-0.03em]">Build brief</h2>
+          </div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#10131b] text-[#f6c453] shadow-[0_12px_24px_rgba(16,19,27,0.16)]">
+            <Sparkles size={18} />
+          </div>
+        </div>
+        <p className="text-sm leading-relaxed text-[#5d6472]">
+          Direct the store, screens, data model, and release path from one focused thread.
+        </p>
+      </div>
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-6">
+      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-6">
         {loadingHistory && (
-          <div className="flex items-center gap-2 text-gray-500">
+          <div className="flex items-center gap-2 text-[#8b8174]">
             <Loader2 size={13} className="animate-spin" />
             <span className="text-xs">Loading chat history...</span>
+          </div>
+        )}
+        {!loadingHistory && messages.length === 0 && !isTyping && (
+          <div className="rounded-2xl border border-[#d8d0c0] bg-white p-4 shadow-[0_18px_40px_rgba(16,19,27,0.08)]">
+            <p className="text-sm font-black">Tell ASEA what should change next.</p>
+            <p className="mt-2 text-xs leading-relaxed text-[#5d6472]">
+              Start with the customer outcome, the page to improve, or the operational tool you need.
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              {promptStarters.map((starter) => (
+                <button
+                  key={starter}
+                  type="button"
+                  onClick={() => setInput(starter)}
+                  className="rounded-lg border border-[#efe6d6] bg-[#f6f1e8] px-3 py-2 text-left text-xs font-bold text-[#343945] transition-colors hover:border-[#007f75]/40 hover:bg-[#e8f7f3]"
+                >
+                  {starter}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         <AnimatePresence>
@@ -680,11 +723,11 @@ function ChatSidebar() {
                   <AgentActivityCard steps={msg.steps} isActive={false} />
                 </div>
               )}
-              <div className={`p-4 max-w-[95%] rounded-2xl text-[13px] leading-relaxed ${msg.role === 'user' ? 'bg-[#2b2b2b] text-white rounded-br-none' : 'bg-transparent text-gray-300 border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent rounded-bl-sm'}`}>
+              <div className={`max-w-[95%] rounded-2xl p-4 text-[13px] leading-relaxed shadow-[0_14px_34px_rgba(16,19,27,0.08)] ${msg.role === 'user' ? 'rounded-br-none bg-[#10131b] text-white' : 'rounded-bl-sm border border-[#d8d0c0] bg-white text-[#343945]'}`}>
                 {msg.plan && (
-                  <div className="mb-2 pb-2 border-b border-white/[0.06]">
-                    <span className="text-[10px] font-semibold text-purple-400 uppercase tracking-wider">Plan</span>
-                    <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">{msg.plan}</p>
+                  <div className="mb-2 border-b border-[#efe6d6] pb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[#007f75]">Plan</span>
+                    <p className="mt-1 text-[11px] leading-relaxed text-[#5d6472]">{msg.plan}</p>
                   </div>
                 )}
                 {msg.content}
@@ -699,9 +742,9 @@ function ChatSidebar() {
               {agentSteps.length > 0 ? (
                 <AgentActivityCard steps={agentSteps} isActive={isTyping} />
               ) : (
-                <div className="flex items-center gap-2 pl-2 text-gray-500">
-                  <Loader2 size={14} className="animate-spin text-blue-500" />
-                  <span className="text-xs">ASEA is thinking...</span>
+                <div className="flex items-center gap-2 rounded-xl border border-[#d8d0c0] bg-white px-3 py-2 text-[#5d6472] shadow-[0_14px_34px_rgba(16,19,27,0.08)]">
+                  <Loader2 size={14} className="animate-spin text-[#007f75]" />
+                  <span className="text-xs font-bold">ASEA is planning the next pass...</span>
                 </div>
               )}
             </motion.div>
@@ -712,30 +755,30 @@ function ChatSidebar() {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-[#0e0e0e]">
+      <div className="border-t border-[#d8d0c0] bg-[#fffaf0] p-4">
         {/* Database buttons removed as per user request */}
         
-        <div className="bg-[#1a1a1a] rounded-2xl border border-white/10 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20 transition-all shadow-lg flex flex-col">
+        <div className="flex flex-col rounded-2xl border border-[#d8d0c0] bg-white shadow-[0_18px_40px_rgba(16,19,27,0.1)] transition-all focus-within:border-[#007f75]/60 focus-within:ring-4 focus-within:ring-[#007f75]/10">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask ASEA..."
-            className="w-full bg-transparent border-none outline-none text-white text-sm p-4 min-h-[60px] max-h-[200px] resize-none pb-0"
+            placeholder="Ask ASEA to change a page, data flow, layout, copy, or launch setup..."
+            className="max-h-[200px] min-h-[78px] w-full resize-none border-none bg-transparent p-4 pb-0 text-sm font-semibold text-[#10131b] outline-none placeholder:text-[#a9a094]"
           />
           <div className="flex items-center justify-between p-2">
             <div className="flex gap-1">
-              <button className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5 transition-colors">
+              <button className="rounded-lg p-2 text-[#8b8174] transition-colors hover:bg-[#f6f1e8] hover:text-[#10131b]">
                 <Sparkles size={16} />
               </button>
-              <button className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5 transition-colors flex items-center gap-1.5 border border-transparent hover:border-white/10">
-                <Pencil size={14} /> <span className="text-xs font-medium">Visual edits</span>
+              <button className="flex items-center gap-1.5 rounded-lg border border-transparent p-2 text-[#8b8174] transition-colors hover:border-[#d8d0c0] hover:bg-[#f6f1e8] hover:text-[#10131b]">
+                <Pencil size={14} /> <span className="text-xs font-black">Visual edits</span>
               </button>
             </div>
             <button 
               onClick={handleSend}
               disabled={!input.trim()}
-              className="p-2 bg-blue-600 hover:bg-blue-500 disabled:bg-[#2a2a2a] disabled:text-gray-500 text-white rounded-xl transition-colors m-1"
+              className="m-1 rounded-xl bg-[#10131b] p-2 text-white transition-colors hover:bg-[#007f75] disabled:bg-[#efe6d6] disabled:text-[#a9a094]"
             >
               <Send size={14} />
             </button>
@@ -771,7 +814,7 @@ function InlineEditor({ activeEdit, onClose, onSave }) {
 
   return (
     <div
-      className="fixed z-50 shadow-2xl rounded-xl border border-blue-500/40 bg-[#0e0e0e] overflow-hidden"
+      className="fixed z-50 overflow-hidden rounded-xl border border-[#007f75]/40 bg-[#fffaf0] text-[#10131b] shadow-2xl"
       style={{
         top: absoluteRect.top,
         left: absoluteRect.left,
@@ -779,7 +822,7 @@ function InlineEditor({ activeEdit, onClose, onSave }) {
         minHeight: absoluteRect.height || 40,
       }}
     >
-      <div className="flex items-center gap-1 px-2 py-1 border-b border-white/10 bg-[#111]">
+      <div className="flex items-center gap-1 border-b border-[#d8d0c0] bg-[#f6f1e8] px-2 py-1">
         {[
           { label: 'B', action: () => editor?.chain().focus().toggleBold().run(), active: editor?.isActive('bold') },
           { label: 'I', action: () => editor?.chain().focus().toggleItalic().run(), active: editor?.isActive('italic') },
@@ -787,21 +830,21 @@ function InlineEditor({ activeEdit, onClose, onSave }) {
           <button
             key={label}
             onMouseDown={(e) => { e.preventDefault(); action(); }}
-            className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${editor && editor.isActive(label.toLowerCase()) ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+            className={`rounded px-2 py-0.5 text-xs font-black transition-colors ${editor && editor.isActive(label.toLowerCase()) ? 'bg-[#10131b] text-white' : 'text-[#5d6472] hover:bg-white hover:text-[#10131b]'}`}
           >
             {label}
           </button>
         ))}
         <div className="ml-auto flex gap-1">
-          <button onClick={onClose} className="px-2 py-0.5 text-xs text-gray-500 hover:text-white rounded">
+          <button onClick={onClose} className="rounded px-2 py-0.5 text-xs font-bold text-[#8b8174] hover:text-[#10131b]">
             Cancel
           </button>
-          <button onClick={handleSave} className="px-2 py-0.5 text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded font-medium">
+          <button onClick={handleSave} className="rounded bg-[#007f75]/10 px-2 py-0.5 text-xs font-black text-[#007f75] hover:bg-[#007f75]/20">
             Save
           </button>
         </div>
       </div>
-      <div className="p-2 [&_.ProseMirror]:outline-none [&_.ProseMirror]:text-white [&_.ProseMirror]:min-h-[28px] [&_.ProseMirror]:px-1">
+      <div className="p-2 [&_.ProseMirror]:min-h-[28px] [&_.ProseMirror]:px-1 [&_.ProseMirror]:text-[#10131b] [&_.ProseMirror]:outline-none">
         <EditorContent editor={editor} />
       </div>
     </div>
@@ -943,10 +986,10 @@ function LivePreview({ deployedUrl }) {
   );
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-[#0a0a0a] p-4 lg:p-6 p-1 relative overflow-hidden">
+    <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#f6f1e8] p-4 lg:p-6">
       {/* Browser Bar Mock Frame */}
       <div 
-        className="flex flex-col bg-white rounded-xl shadow-2xl transition-all duration-300 overflow-hidden relative"
+        className="relative flex flex-col overflow-hidden rounded-2xl border border-[#d8d0c0] bg-white shadow-[0_24px_70px_rgba(16,19,27,0.18)] transition-all duration-300"
         style={{
             maxWidth: DEVICE_WIDTHS[deviceMode] || '100%',
             width: '100%',
@@ -954,14 +997,14 @@ function LivePreview({ deployedUrl }) {
             maxHeight: '100%'
         }}
       >
-        <div className="h-10 bg-white border-b border-gray-200 flex items-center px-4 gap-2 flex-shrink-0">
-           <div className="flex gap-1.5 flex-1 max-w-[60px]">
-             <div className="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-             <div className="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-             <div className="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+        <div className="flex h-12 shrink-0 items-center gap-3 border-b border-[#d8d0c0] bg-[#fffaf0] px-4">
+           <div className="flex max-w-[72px] flex-1 gap-1.5">
+             <div className="h-2.5 w-2.5 rounded-full bg-[#f06f63]"></div>
+             <div className="h-2.5 w-2.5 rounded-full bg-[#f6c453]"></div>
+             <div className="h-2.5 w-2.5 rounded-full bg-[#007f75]"></div>
            </div>
            
-           <div className="mx-auto flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md text-[11px] text-gray-600 font-mono flex-1 max-w-sm justify-center">
+           <div className="mx-auto flex max-w-md flex-1 items-center justify-center gap-2 rounded-lg border border-[#d8d0c0] bg-white px-3 py-1.5 font-mono text-[11px] font-semibold text-[#5d6472]">
              <span className="truncate" title={hasDeployedUrl ? deployedUrl : 'Not deployed yet'}>
                {hasDeployedUrl ? deployedUrl : 'Not deployed yet'}
              </span>
@@ -970,7 +1013,7 @@ function LivePreview({ deployedUrl }) {
                  href={deployedUrl}
                  target="_blank"
                  rel="noreferrer"
-                 className="text-gray-500 hover:text-gray-800"
+                 className="text-[#8b8174] hover:text-[#10131b]"
                  title="Open deployed URL"
                >
                  <ExternalLink size={12} />
@@ -978,26 +1021,27 @@ function LivePreview({ deployedUrl }) {
              ) : null}
            </div>
            
-           <div className="flex flex-1 max-w-[60px] justify-end">
+           <div className="flex max-w-[72px] flex-1 justify-end">
                <button
                  onClick={loadPreview}
                  disabled={loading}
-                 className="p-1 rounded hover:bg-gray-200/70 disabled:opacity-50"
+                 className="rounded-lg border border-transparent p-1.5 transition-colors hover:border-[#d8d0c0] hover:bg-white disabled:opacity-50"
                  title="Reload preview"
                >
-                 <RefreshCw size={14} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
+                 <RefreshCw size={14} className={`text-[#8b8174] ${loading ? 'animate-spin' : ''}`} />
                </button>
            </div>
         </div>
         
         {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center bg-white border-x border-b border-transparent rounded-b-xl overflow-hidden">
-            <Loader2 size={24} className="animate-spin text-blue-500 mb-4" />
+          <div className="flex flex-1 flex-col items-center justify-center overflow-hidden rounded-b-xl border-x border-b border-transparent bg-white">
+            <Loader2 size={24} className="mb-4 animate-spin text-[#007f75]" />
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#8b8174]">Loading preview</p>
           </div>
         ) : (
-          <div className="flex-1 bg-white flex justify-center w-full h-full p-0 relative min-h-0">
+          <div className="relative flex h-full min-h-0 w-full flex-1 justify-center bg-white p-0">
              {error ? (
-               <div className="absolute top-2 left-2 right-2 z-10 rounded-md border border-amber-300/50 bg-amber-50 text-amber-900 text-xs px-3 py-2">
+               <div className="absolute left-3 right-3 top-3 z-10 rounded-lg border border-[#c8931f]/40 bg-[#fff2cb] px-3 py-2 text-xs font-semibold text-[#8a5d00]">
                  {error}
                </div>
              ) : null}
@@ -1172,18 +1216,18 @@ function CodeViewerPane() {
             <div key={dir.path}>
               <button
                 onClick={() => toggleDir(dir.path)}
-                className="w-full flex items-center gap-1.5 px-2 py-1 rounded text-xs text-gray-300 hover:bg-white/5"
+                className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold text-[#5d6472] hover:bg-[#f6f1e8] hover:text-[#10131b]"
                 style={{ paddingLeft: `${8 + depth * 14}px` }}
               >
                 {isOpen ? (
-                  <ChevronDown size={12} className="text-gray-500 shrink-0" />
+                  <ChevronDown size={12} className="shrink-0 text-[#8b8174]" />
                 ) : (
-                  <ChevronRight size={12} className="text-gray-500 shrink-0" />
+                  <ChevronRight size={12} className="shrink-0 text-[#8b8174]" />
                 )}
                 {isOpen ? (
-                  <FolderOpen size={13} className="text-amber-400 shrink-0" />
+                  <FolderOpen size={13} className="shrink-0 text-[#c8931f]" />
                 ) : (
-                  <Folder size={13} className="text-amber-400 shrink-0" />
+                  <Folder size={13} className="shrink-0 text-[#c8931f]" />
                 )}
                 <span className="truncate">{dir.name}</span>
               </button>
@@ -1198,7 +1242,7 @@ function CodeViewerPane() {
             <button
               key={file.path}
               onClick={() => loadFileContent(file.path)}
-              className={`w-full flex items-center gap-1.5 px-2 py-1 rounded text-xs truncate transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-300' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+              className={`flex w-full items-center gap-1.5 truncate rounded px-2 py-1 text-xs font-semibold transition-colors ${isSelected ? 'bg-[#10131b] text-white shadow-sm' : 'text-[#5d6472] hover:bg-[#f6f1e8] hover:text-[#10131b]'}`}
               style={{ paddingLeft: `${24 + depth * 14}px` }}
               title={file.path}
             >
@@ -1212,13 +1256,13 @@ function CodeViewerPane() {
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-[#111] p-4">
-      <div className="w-72 border border-white/10 rounded-xl overflow-hidden bg-[#0d0d0d] mr-4 flex flex-col">
-        <div className="h-11 px-3 border-b border-white/10 flex items-center justify-between">
-          <span className="text-xs uppercase tracking-wide text-gray-400">Explorer</span>
+    <div className="flex flex-1 overflow-hidden bg-[#f6f1e8] p-4 lg:p-6">
+      <div className="mr-4 flex w-72 flex-col overflow-hidden rounded-2xl border border-[#d8d0c0] bg-white shadow-[0_18px_48px_rgba(16,19,27,0.1)]">
+        <div className="flex h-12 items-center justify-between border-b border-[#d8d0c0] px-3">
+          <span className="text-xs font-black uppercase tracking-[0.22em] text-[#007f75]">Project files</span>
           <button
             onClick={loadFiles}
-            className="text-xs text-gray-400 hover:text-white flex items-center gap-1"
+            className="flex items-center gap-1 rounded-lg border border-transparent px-2 py-1 text-xs font-black text-[#5d6472] transition-colors hover:border-[#d8d0c0] hover:bg-[#f6f1e8] hover:text-[#10131b]"
             disabled={loadingFiles}
           >
             <RefreshCw size={12} className={loadingFiles ? 'animate-spin' : ''} />
@@ -1227,20 +1271,20 @@ function CodeViewerPane() {
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {files.length === 0 ? (
-            <p className="text-xs text-gray-500 px-2 py-3">No files available</p>
+            <p className="px-2 py-3 text-xs font-semibold text-[#8b8174]">No files available</p>
           ) : (
             renderTree(tree)
           )}
         </div>
       </div>
 
-      <div className="flex-1 border border-white/10 rounded-xl overflow-hidden bg-[#0e0e0e] flex flex-col">
-        <div className="h-11 px-3 border-b border-white/10 flex items-center justify-between gap-3">
-          <span className="text-xs text-gray-400 truncate">{activeFilePath || 'No file selected'}</span>
+      <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-[#20242e] bg-[#10131b] shadow-[0_24px_70px_rgba(16,19,27,0.24)]">
+        <div className="flex h-12 items-center justify-between gap-3 border-b border-white/10 bg-[#161a24] px-4">
+          <span className="truncate font-mono text-xs text-[#c9ced8]">{activeFilePath || 'No file selected'}</span>
           <button
             onClick={handleSave}
             disabled={!dirty || saving}
-            className="px-3 py-1 text-xs rounded-md bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-lg bg-[#f6c453] px-3 py-1.5 text-xs font-black text-[#10131b] transition-colors hover:bg-[#ffd778] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/40"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>
@@ -1248,7 +1292,7 @@ function CodeViewerPane() {
         <div className="flex-1 relative">
           {loadingContent && (
             <div className="absolute inset-0 z-10 bg-[#0e0e0e]/80 flex items-center justify-center">
-              <Loader2 size={18} className="animate-spin text-blue-400" />
+              <Loader2 size={18} className="animate-spin text-[#f6c453]" />
             </div>
           )}
         <Editor
@@ -1314,9 +1358,9 @@ export default function BuilderPage() {
   }, [id]);
 
   return (
-    <div className="flex flex-col h-screen bg-[#0a0a0a] overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#f6f1e8] text-[#10131b]">
       <BuilderToolbar deployedUrl={deployedUrl} setDeployedUrl={setDeployedUrl} />
-      <div className="flex flex-1 overflow-hidden h-[calc(100vh-56px)]">
+      <div className="flex h-[calc(100vh-64px)] flex-1 overflow-hidden">
         <ChatSidebar />
         {viewMode === 'preview' ? <LivePreview deployedUrl={deployedUrl} /> : <CodeViewerPane />}
       </div>

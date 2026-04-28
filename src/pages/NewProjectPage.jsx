@@ -1,7 +1,21 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles, Loader2, Bot, Database, Layout, Palette, Server } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ArrowRight,
+  Bot,
+  Check,
+  Database,
+  Layers3,
+  Layout,
+  Loader2,
+  Palette,
+  Rocket,
+  Server,
+  Sparkles,
+  Store,
+  WandSparkles,
+} from 'lucide-react';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Button, Input } from '@/components/common';
 import { STORE_CATEGORIES } from '@/constants';
@@ -9,10 +23,43 @@ import useGenerationStore from '@/store/generation.store';
 import useProjectsStore from '@/store/projects.store';
 import { projectsService } from '@/services/projects.service';
 
-// ─── Step 1: Requirement Input ────────────────────────
+const inputClass =
+  '!rounded-lg !border-[#d8d0c0] !bg-white px-4 py-3 !text-[#10131b] placeholder:!text-[#9a9387] focus:!border-[#0f766e] focus:!ring-[#0f766e]/20';
+const labelClass = 'font-black text-[#343945]';
+const errorClass = 'text-[#ba4d41]';
+
+const promptIdeas = [
+  {
+    title: 'Fashion drop',
+    category: 'Fashion',
+    prompt:
+      'Create a premium streetwear store for limited hoodie and sneaker drops. Include product variants, waitlist capture, editorial collection pages, size guides, and a fast checkout flow.',
+  },
+  {
+    title: 'Beauty brand',
+    category: 'Beauty',
+    prompt:
+      'Build a clean skincare store for a modern beauty brand. Include routine bundles, ingredient education, reviews, subscription options, and a soft editorial visual style.',
+  },
+  {
+    title: 'Home goods',
+    category: 'Home goods',
+    prompt:
+      'Generate a warm home decor store with curated collections, room inspiration pages, product filters, shipping details, and an admin area for inventory and orders.',
+  },
+];
+
+const agents = [
+  { id: 'architect', name: 'Architect', glyph: <Database size={20} />, task: 'Schema and product model' },
+  { id: 'backend', name: 'Backend', glyph: <Server size={20} />, task: 'API and commerce rules' },
+  { id: 'frontend', name: 'Frontend', glyph: <Layout size={20} />, task: 'Pages and interactions' },
+  { id: 'stylist', name: 'Stylist', glyph: <Palette size={20} />, task: 'Brand and polish' },
+];
+
 function RequirementStep({ data, onChange, onGenerate }) {
   const [enhancing, setEnhancing] = useState(false);
 
+  const briefLength = data.requirements?.trim().length || 0;
   const enhance = async () => {
     if (!data.requirements?.trim()) {
       toast.error('Please describe your store first');
@@ -22,7 +69,7 @@ function RequirementStep({ data, onChange, onGenerate }) {
     try {
       const res = await projectsService.enhanceRequirements(data.requirements);
       onChange({ requirements: res.data.enhanced });
-      toast.success('Requirements enhanced!');
+      toast.success('Requirements enhanced');
     } catch {
       toast.error('Enhancement failed');
     } finally {
@@ -30,103 +77,153 @@ function RequirementStep({ data, onChange, onGenerate }) {
     }
   };
 
+  const applyIdea = (idea) => {
+    onChange({ requirements: idea.prompt, category: idea.category });
+  };
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+    <Motion.div
+      initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-2xl mx-auto"
+      className="mx-auto max-w-7xl"
     >
-      <h2 className="text-2xl font-bold mb-2">Describe Your Store</h2>
-      <p className="text-gray-400 text-sm mb-8">
-        Tell us what kind of e-commerce store you want to build. Be as detailed as you like.
-      </p>
-
-      <textarea
-        value={data.requirements || ''}
-        onChange={(e) => onChange({ requirements: e.target.value })}
-        rows={8}
-        placeholder="I want a fashion store selling streetwear for men and women. I need size and color variants, a lookbook page, and Instagram-style product photos..."
-        className="w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm text-white placeholder:text-gray-500 outline-none focus:border-blue-500 resize-none"
-      />
-      <div className="flex items-center justify-between mt-2">
-        <span className="text-xs text-gray-500">
-          {data.requirements?.length || 0} characters
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={enhance}
-          loading={enhancing}
-        >
-          <Sparkles size={14} /> Enhance with AI
-        </Button>
-      </div>
-
-      {/* Category pills */}
-      <div className="mt-6">
-        <p className="text-sm text-gray-400 mb-3">Store Category</p>
-        <div className="flex flex-wrap gap-2">
-          {STORE_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => onChange({ category: cat })}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border
-                ${data.category === cat
-                  ? 'bg-blue-500/15 border-blue-500/40 text-blue-400'
-                  : 'border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
-                }`}
+      <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
+        <section className="rounded-lg border border-[#d8d0c0] bg-white p-6 shadow-[0_18px_55px_rgba(22,24,31,0.06)] lg:p-8">
+          <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-[#9a6a0a]">
+                Launch brief
+              </p>
+              <h2 className="text-2xl font-black tracking-tight text-[#10131b]">
+                What are we building?
+              </h2>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={enhance}
+              loading={enhancing}
+              className="!rounded-lg !border-[#d8d0c0] !bg-[#fffaf0] font-black !text-[#10131b] hover:!border-[#10131b] hover:!bg-[#f6f1e8]"
             >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
+              <Sparkles size={14} /> Enhance with AI
+            </Button>
+          </div>
 
-      {/* Optional fields */}
-      <details className="mt-6">
-        <summary className="text-sm text-gray-400 cursor-pointer hover:text-white">
-          Optional: Additional details
-        </summary>
-        <div className="mt-4 space-y-4">
-          <Input
-            label="Store Name"
-            placeholder="My Awesome Store"
-            value={data.storeName || ''}
-            onChange={(e) => onChange({ storeName: e.target.value })}
+          <textarea
+            value={data.requirements || ''}
+            onChange={(e) => onChange({ requirements: e.target.value })}
+            rows={9}
+            placeholder="Example: I want a premium streetwear store for limited drops. Include product variants, waitlist capture, editorial collection pages, size guides, reviews, and a fast checkout experience..."
+            className="min-h-[250px] w-full resize-none rounded-lg border border-[#d8d0c0] bg-[#fffaf0] px-5 py-4 text-base leading-7 text-[#10131b] outline-none placeholder:text-[#9a9387] focus:border-[#0f766e] focus:ring-1 focus:ring-[#0f766e]/20"
           />
-          <p className="text-xs text-gray-500 -mt-2">
-            Leave blank to auto-generate a strong store name using Groq.
-          </p>
-          <Input
-            label="Target Market"
-            placeholder="e.g. Young adults 18-35"
-            value={data.targetMarket || ''}
-            onChange={(e) => onChange({ targetMarket: e.target.value })}
-          />
-        </div>
-      </details>
 
-      <div className="flex justify-end mt-8">
-        <Button
-          size="lg"
-          onClick={onGenerate}
-          disabled={!data.requirements?.trim()}
-        >
-          Generate Store <ArrowRight size={18} />
-        </Button>
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-xs font-bold text-[#6f766f]">
+              {briefLength} characters
+            </span>
+            <span className="text-xs font-black uppercase tracking-[0.16em] text-[#0f766e]">
+              More detail creates a stronger first build
+            </span>
+          </div>
+
+          <div className="mt-8">
+            <p className="mb-3 text-sm font-black text-[#343945]">Store category</p>
+            <div className="flex flex-wrap gap-2">
+              {STORE_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => onChange({ category: cat })}
+                  className={`rounded-lg border px-4 py-2 text-sm font-black transition-colors
+                    ${data.category === cat
+                      ? 'border-[#0f766e]/35 bg-[#dff7f1] text-[#0f766e]'
+                      : 'border-[#d8d0c0] bg-white text-[#5c6270] hover:border-[#10131b] hover:text-[#10131b]'
+                    }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <details className="mt-8 rounded-lg border border-[#d8d0c0] bg-[#f7f2e8] p-4">
+            <summary className="cursor-pointer text-sm font-black text-[#10131b]">
+              Optional launch details
+            </summary>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <Input
+                label="Store Name"
+                placeholder="Northstar Goods"
+                value={data.storeName || ''}
+                onChange={(e) => onChange({ storeName: e.target.value })}
+                className={inputClass}
+                labelClassName={labelClass}
+                errorClassName={errorClass}
+              />
+              <Input
+                label="Target Market"
+                placeholder="Young adults 18-35"
+                value={data.targetMarket || ''}
+                onChange={(e) => onChange({ targetMarket: e.target.value })}
+                className={inputClass}
+                labelClassName={labelClass}
+                errorClassName={errorClass}
+              />
+            </div>
+            <p className="mt-3 text-xs font-bold text-[#6f766f]">
+              Leave the store name blank if you want ASEA to suggest one.
+            </p>
+          </details>
+
+          <div className="mt-8 flex justify-end">
+            <Button
+              size="lg"
+              onClick={onGenerate}
+              disabled={!data.requirements?.trim()}
+              className="!rounded-lg !bg-[#10131b] px-6 py-4 font-black !text-white hover:!bg-[#253044]"
+            >
+              Generate store <ArrowRight size={18} />
+            </Button>
+          </div>
+        </section>
+
+        <aside className="space-y-5">
+          <div className="rounded-lg border border-[#d8d0c0] bg-[#fffaf0] p-5">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#dff7f1] text-[#0f766e]">
+                <WandSparkles className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-black text-[#10131b]">Starter prompts</p>
+                <p className="text-xs font-bold text-[#6f766f]">Use one, then customize it.</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {promptIdeas.map((idea) => (
+                <button
+                  key={idea.title}
+                  type="button"
+                  onClick={() => applyIdea(idea)}
+                  className="w-full rounded-lg border border-[#d8d0c0] bg-white p-4 text-left transition hover:border-[#10131b]"
+                >
+                  <p className="text-sm font-black text-[#10131b]">{idea.title}</p>
+                  <p className="mt-2 line-clamp-3 text-xs leading-5 text-[#5c6270]">{idea.prompt}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-[#0f766e] p-5 text-white shadow-[0_18px_55px_rgba(15,118,110,0.18)]">
+            <Store className="mb-5 h-8 w-8 text-[#aee9de]" />
+            <h3 className="text-xl font-black tracking-tight">A better brief makes a better store.</h3>
+            <p className="mt-3 text-sm leading-6 text-white/72">
+              Mention products, audience, brand style, must-have pages, payment needs, and admin workflows.
+            </p>
+          </div>
+        </aside>
       </div>
-    </motion.div>
+    </Motion.div>
   );
 }
-
-// ─── Step 2: Generation Progress ──────────────────────
-// Cool animation components
-const agents = [
-  { id: 'architect', name: 'Architect Agent', icon: Database, task: 'Database & Models' },
-  { id: 'backend', name: 'Backend Agent', icon: Server, task: 'API & Business Logic' },
-  { id: 'frontend', name: 'Frontend Agent', icon: Layout, task: 'Components & Pages' },
-  { id: 'stylist', name: 'Stylist Agent', icon: Palette, task: 'Tailwind & Design' },
-];
 
 function GenerationStep({ projectId }) {
   const status = useGenerationStore((state) => state.status);
@@ -137,184 +234,198 @@ function GenerationStep({ projectId }) {
   const setProgress = useGenerationStore((state) => state.setProgress);
   const setStep = useGenerationStore((state) => state.setStep);
   const appendLog = useGenerationStore((state) => state.appendLog);
-  
-  // Fake generation simulation
-  useEffect(() => {
-    if (!projectId) return;
 
+  useEffect(() => {
+    if (!projectId) return undefined;
+
+    let cancelled = false;
     setStatus('running');
     setProgress(0);
 
     const stepsInfo = [
-      { stepText: 'Architecting Database & Models', logLines: ['Designing database schema...', 'Generating SQLAlchemy models...', 'Establishing relationships...', 'Creating initial migrations...'] },
-      { stepText: 'Building API & Business Logic', logLines: ['Scaffolding FastAPI app...', 'Setting up authentication routes...', 'Creating product and order endpoints...', 'Implementing background tasks...'] },
-      { stepText: 'Developing UI Components', logLines: ['Initializing React application...', 'Building layout components...', 'Integrating Zustand state...', 'Fetching template assets...'] },
-      { stepText: 'Applying Styles & Polish', logLines: ['Configuring Tailwind CSS...', 'Adding Framer Motion animations...', 'Finalizing responsive design...', 'Preparing deployment package...'] },
+      { stepText: 'Mapping commerce architecture', logLines: ['Reading launch brief...', 'Designing product data...', 'Planning user journeys...', 'Preparing schema draft...'] },
+      { stepText: 'Building backend foundation', logLines: ['Scaffolding API routes...', 'Setting up auth flows...', 'Preparing order logic...', 'Connecting generation tasks...'] },
+      { stepText: 'Composing storefront screens', logLines: ['Creating store layout...', 'Building product cards...', 'Wiring cart states...', 'Preparing responsive pages...'] },
+      { stepText: 'Applying brand polish', logLines: ['Choosing visual tokens...', 'Refining spacing...', 'Adding motion details...', 'Packaging project files...'] },
     ];
 
     let overallProgress = 0;
     const totalLogs = stepsInfo.reduce((acc, s) => acc + s.logLines.length, 0);
     const progressPerLog = 100 / totalLogs;
 
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
     const simulateGeneration = async () => {
-      // 1.5s initial startup delay
-      await new Promise(r => setTimeout(r, 1500));
-      
-      for (let i = 0; i < stepsInfo.length; i++) {
-        setStep(stepsInfo[i].stepText);
-        for (let j = 0; j < stepsInfo[i].logLines.length; j++) {
-          await new Promise(r => setTimeout(r, 600 + Math.random() * 400)); // 0.6s - 1s per log
-          appendLog({ level: 'info', line: stepsInfo[i].logLines[j] });
+      await wait(1000);
+
+      for (const info of stepsInfo) {
+        if (cancelled) return;
+        setStep(info.stepText);
+        for (const line of info.logLines) {
+          await wait(550 + Math.random() * 350);
+          if (cancelled) return;
+          appendLog({ level: 'info', line });
           overallProgress += progressPerLog;
           setProgress(Math.min(Math.round(overallProgress), 99));
         }
       }
-      
-      await new Promise(r => setTimeout(r, 1000));
-      appendLog({ level: 'success', line: 'Multi-agent orchestration complete! Project is ready.' });
+
+      await wait(900);
+      if (cancelled) return;
+      appendLog({ level: 'success', line: 'Launch room assembled. Your store is ready.' });
       setProgress(100);
       setStatus('complete');
     };
 
     simulateGeneration();
-  }, [projectId]);
 
-  // We determine active agent based on progress for visual sync:
+    return () => {
+      cancelled = true;
+    };
+  }, [appendLog, projectId, setProgress, setStatus, setStep]);
+
   const activeIndex = Math.min(Math.floor(progress / 25), 3);
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="text-center mb-12"
+    <div className="mx-auto flex min-h-[70vh] max-w-7xl flex-col justify-center">
+      <Motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-10 overflow-hidden rounded-lg border border-[#d8d0c0] bg-[#fffaf0] shadow-[0_20px_70px_rgba(22,24,31,0.08)]"
       >
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/20 text-blue-400 mb-6 relative">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-            className="absolute inset-0 border-t-2 border-r-2 border-blue-400 rounded-full"
-          />
-          <Bot size={32} />
-        </div>
-        <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-          Orchestrating AI Agents...
-        </h2>
-        <p className="text-gray-400 text-lg">
-          {currentStep || 'Initializing multi-agent framework...'}
-        </p>
-      </motion.div>
+        <div className="grid gap-8 p-6 lg:grid-cols-[1fr_22rem] lg:p-8">
+          <div>
+            <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-[#0f766e]">
+              Generation in progress
+            </p>
+            <h2 className="max-w-3xl text-4xl font-black tracking-tight text-[#10131b] sm:text-5xl">
+              ASEA agents are assembling your commerce project.
+            </h2>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-[#5c6270]">
+              {currentStep || 'Initializing the launch workflow...'}
+            </p>
+          </div>
 
-      {/* Agents grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full mb-12">
-        {agents.map((agent, idx) => {
-          const isActive = idx === activeIndex && status !== 'complete';
-          const isDone = progress >= ((idx + 1) * 25);
-          const Icon = agent.icon;
-          
-          return (
-            <motion.div
-              key={agent.id}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: idx * 0.1 }}
-              className={`p-6 rounded-2xl border transition-all duration-500 relative overflow-hidden
-                ${isActive 
-                  ? 'border-blue-500/50 bg-blue-500/10 shadow-[0_0_30px_rgba(59,130,246,0.2)]' 
-                  : isDone
-                  ? 'border-emerald-500/30 bg-emerald-500/5'
-                  : 'border-white/5 bg-white/5 opacity-50'
-                }`}
-            >
-              {isActive && (
-                <motion.div
-                  className="absolute inset-0 bg-blue-500/10"
-                  animate={{ opacity: [0.5, 1, 0.5] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                />
-              )}
-              <div className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center
-                ${isActive ? 'bg-blue-500/20 text-blue-400' : isDone ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-gray-500'}
-              `}>
-                <Icon size={20} />
+          <div className="rounded-lg bg-[#10131b] p-5 text-white">
+            <div className="mb-8 flex items-center justify-between">
+              <span className="rounded-lg bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#10131b]">
+                Overall progress
+              </span>
+              <Bot className="h-6 w-6 text-[#f2b84b]" />
+            </div>
+            <p className="text-6xl font-black tracking-tight">{progress}%</p>
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+              <Motion.div
+                className="h-full rounded-full bg-[#0f766e]"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
+              />
+            </div>
+            {status === 'running' && (
+              <div className="mt-5 flex items-center gap-2 text-sm font-bold text-[#aee9de]">
+                <Loader2 size={14} className="animate-spin" />
+                Agent framework is processing
               </div>
-              <h3 className="font-semibold text-white mb-1">{agent.name}</h3>
-              <p className="text-xs text-gray-400">{agent.task}</p>
-              
-              {isActive && (
-                <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
-                  <motion.div 
-                    className="h-full bg-blue-500"
-                    initial={{ width: '0%' }}
-                    animate={{ width: '100%' }}
+            )}
+          </div>
+        </div>
+      </Motion.div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_0.85fr]">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {agents.map((agent, idx) => {
+            const isActive = idx === activeIndex && status !== 'complete';
+            const isDone = progress >= ((idx + 1) * 25);
+
+            return (
+              <Motion.div
+                key={agent.id}
+                initial={{ y: 16, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: idx * 0.08 }}
+                className={`relative overflow-hidden rounded-lg border p-5 transition-all duration-500 ${
+                  isActive
+                    ? 'border-[#0f766e]/45 bg-[#dff7f1] shadow-[0_18px_55px_rgba(15,118,110,0.14)]'
+                    : isDone
+                      ? 'border-[#d8d0c0] bg-white'
+                      : 'border-[#d8d0c0] bg-[#fffaf0]'
+                }`}
+              >
+                <div className={`mb-6 flex h-11 w-11 items-center justify-center rounded-lg ${
+                  isActive ? 'bg-[#0f766e] text-white' : isDone ? 'bg-[#10131b] text-white' : 'bg-[#e6e9f2] text-[#343945]'
+                }`}>
+                  {agent.glyph}
+                </div>
+                <h3 className="text-lg font-black text-[#10131b]">{agent.name}</h3>
+                <p className="mt-2 text-sm font-bold text-[#5c6270]">{agent.task}</p>
+                {isActive && (
+                  <Motion.div
+                    className="absolute inset-x-0 bottom-0 h-1 bg-[#0f766e]"
+                    initial={{ scaleX: 0, transformOrigin: 'left' }}
+                    animate={{ scaleX: 1 }}
                     transition={{ duration: 2, repeat: Infinity }}
                   />
-                </div>
-              )}
-            </motion.div>
-          )
-        })}
-      </div>
-
-      {/* Global Progress & Logs */}
-      <div className="w-full max-w-2xl">
-        <div className="flex justify-between items-end mb-2">
-          <span className="text-sm text-gray-400">Overall Generation Progress</span>
-          <span className="text-sm font-mono text-blue-400">{progress}%</span>
-        </div>
-        <div className="w-full h-2 rounded-full bg-white/10 mb-6 overflow-hidden">
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ type: 'spring', bounce: 0, duration: 0.5 }}
-          />
+                )}
+              </Motion.div>
+            );
+          })}
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-black/50 p-4 h-48 overflow-y-auto font-mono text-xs space-y-2">
-          {logs.map((log, i) => (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              key={i}
-              className={`${
-                log.level === 'error' ? 'text-red-400' :
-                log.level === 'success' ? 'text-emerald-400' :
-                'text-gray-400'
-              }`}
+        <div className="rounded-lg border border-[#d8d0c0] bg-[#10131b] p-5 text-white shadow-[0_18px_55px_rgba(22,24,31,0.16)]">
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-white/55">Build log</p>
+            <Layers3 className="h-5 w-5 text-[#f2b84b]" />
+          </div>
+          <div className="h-72 space-y-2 overflow-y-auto rounded-lg border border-white/10 bg-black/22 p-4 font-mono text-xs">
+            {logs.map((log, i) => (
+              <Motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                key={`${log.timestamp}-${i}`}
+                className={
+                  log.level === 'error'
+                    ? 'text-[#ff9c8f]'
+                    : log.level === 'success'
+                      ? 'text-[#aee9de]'
+                      : 'text-white/64'
+                }
+              >
+                <span className="mr-2 opacity-50">
+                  [{log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : '--:--:--'}]
+                </span>
+                {log.line}
+              </Motion.div>
+            ))}
+            {status === 'running' && (
+              <div className="flex items-center gap-2 pt-2 text-[#aee9de]">
+                <Loader2 size={12} className="animate-spin" />
+                Working...
+              </div>
+            )}
+          </div>
+
+          {status === 'error' && (
+            <Motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 rounded-lg border border-[#ef6f61]/35 bg-[#ffe6df] p-4 text-sm font-bold text-[#ba4d41]"
             >
-              <span className="opacity-50 mr-2">[{new Date().toLocaleTimeString()}]</span>
-              {log.line}
-            </motion.div>
-          ))}
-          {status === 'running' && (
-            <div className="flex items-center gap-2 text-blue-400 pt-2">
-              <Loader2 size={12} className="animate-spin" />
-              Agent framework is processing...
-            </div>
+              Generation failed. Please try again or check the logs.
+            </Motion.div>
           )}
         </div>
-
-        {status === 'error' && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400"
-          >
-            Generation failed. Please try again or check the logs.
-          </motion.div>
-        )}
       </div>
     </div>
   );
 }
 
-// ─── Main Wizard ──────────────────────────────────────
 export default function NewProjectPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [data, setData] = useState({});
   const [projectId, setProjectId] = useState(null);
-  
+
   const addProject = useProjectsStore((s) => s.addProject);
   const generationReset = useGenerationStore((s) => s.reset);
 
@@ -328,12 +439,10 @@ export default function NewProjectPage() {
       return;
     }
 
-    // Immediately navigate to the animation loading page
     generationReset();
     setStep(2);
 
     try {
-      // Run API calls in the background while animation plays
       const res = await projectsService.create({
         requirements: data.requirements,
         category: data.category,
@@ -344,55 +453,56 @@ export default function NewProjectPage() {
       setProjectId(newProjectId);
       addProject(res.data.project);
 
-      // Start generation
       await projectsService.startGeneration(newProjectId);
     } catch (error) {
       console.error(error);
       const message = error?.response?.data?.detail;
       toast.error(message || 'Failed to start generation');
-      // Return to requirements step on failure
       setStep(1);
     }
   };
 
-  // When generation completes, navigate to builder
-  useEffect(() => {
-    const unsub = useGenerationStore.subscribe((state) => {
+  const handleGenerationStatus = useMemo(
+    () => (state) => {
       if (state.status === 'complete' && projectId) {
-        toast.success('Store generated successfully!');
-        // Redirect to live edit and preview page
+        toast.success('Store generated successfully');
         navigate(`/projects/${projectId}`);
       }
-    });
+    },
+    [navigate, projectId]
+  );
+
+  useEffect(() => {
+    const unsub = useGenerationStore.subscribe(handleGenerationStatus);
     return unsub;
-  }, [projectId, navigate]);
+  }, [handleGenerationStatus]);
 
   return (
-    <div className="w-full py-8 px-4">
+    <div className="w-full">
       <AnimatePresence mode="wait">
         {step === 1 && (
-          <motion.div
+          <Motion.div
             key="step1"
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.25 }}
           >
-            <RequirementStep 
-              data={data} 
-              onChange={updateData} 
-              onGenerate={handleGenerate} 
+            <RequirementStep
+              data={data}
+              onChange={updateData}
+              onGenerate={handleGenerate}
             />
-          </motion.div>
+          </Motion.div>
         )}
-        
+
         {step === 2 && (
-          <motion.div
+          <Motion.div
             key="step2"
-            initial={{ opacity: 0, scale: 1.05 }}
+            initial={{ opacity: 0, scale: 1.02 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.35 }}
           >
             <GenerationStep projectId={projectId} />
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
     </div>
