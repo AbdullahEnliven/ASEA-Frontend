@@ -23,14 +23,14 @@ const heroStats = [
 ];
 
 const companyMarks = [
-  { name: 'Northstar', style: 'font-black tracking-tight' },
-  { name: 'Vellum', style: 'font-black tracking-[-0.02em]' },
-  { name: 'Arc Studio', style: 'font-black tracking-tight' },
-  { name: 'HelioCart', style: 'font-black tracking-[-0.03em]' },
-  { name: 'Monarch', style: 'font-black tracking-tight' },
-  { name: 'Stacklane', style: 'font-black tracking-[-0.02em]' },
-  { name: 'Luma Labs', style: 'font-black tracking-tight' },
-  { name: 'OrbitWorks', style: 'font-black tracking-[-0.02em]' },
+  { name: 'Northstar', glyph: 'star', wordClass: 'font-black' },
+  { name: 'Vellum', glyph: 'fold', wordClass: 'font-semibold' },
+  { name: 'Arc Studio', glyph: 'arc', wordClass: 'font-black' },
+  { name: 'HelioCart', glyph: 'sun', wordClass: 'font-black' },
+  { name: 'Monarch', glyph: 'crown', wordClass: 'font-semibold' },
+  { name: 'Stacklane', glyph: 'stack', wordClass: 'font-black' },
+  { name: 'Luma Labs', glyph: 'spark', wordClass: 'font-semibold' },
+  { name: 'OrbitWorks', glyph: 'orbit', wordClass: 'font-black' },
 ];
 
 const outputCards = [
@@ -207,30 +207,104 @@ function CapabilityCard({ item, index }) {
   );
 }
 
+function CompanyMarkGlyph({ type }) {
+  const common = 'h-8 w-8 sm:h-9 sm:w-9';
+
+  if (type === 'fold') {
+    return (
+      <svg className={common} viewBox="0 0 36 36" aria-hidden="true">
+        <path d="M9 7h18v22H9z" fill="none" stroke="currentColor" strokeWidth="2.4" />
+        <path d="M27 7 14 20v9" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (type === 'arc') {
+    return (
+      <svg className={common} viewBox="0 0 36 36" aria-hidden="true">
+        <path d="M7 25c3.4-8.8 8-13.2 13.8-13.2 3.8 0 6.7 1.5 8.7 4.6" fill="none" stroke="currentColor" strokeWidth="2.7" strokeLinecap="round" />
+        <path d="M9 25h19" fill="none" stroke="currentColor" strokeWidth="2.7" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (type === 'sun') {
+    return (
+      <svg className={common} viewBox="0 0 36 36" aria-hidden="true">
+        <circle cx="18" cy="18" r="6" fill="none" stroke="currentColor" strokeWidth="2.4" />
+        <path d="M18 5v5M18 26v5M5 18h5M26 18h5M8.8 8.8l3.5 3.5M23.7 23.7l3.5 3.5M27.2 8.8l-3.5 3.5M12.3 23.7l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (type === 'crown') {
+    return (
+      <svg className={common} viewBox="0 0 36 36" aria-hidden="true">
+        <path d="M8 25h20l-2-13-6 6-2-8-2 8-6-6z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+        <path d="M11 29h14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (type === 'stack') {
+    return (
+      <svg className={common} viewBox="0 0 36 36" aria-hidden="true">
+        <path d="m18 6 12 6-12 6-12-6zM8 18l10 5 10-5M8 24l10 5 10-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (type === 'spark') {
+    return (
+      <svg className={common} viewBox="0 0 36 36" aria-hidden="true">
+        <path d="M18 5l3.2 9.8L31 18l-9.8 3.2L18 31l-3.2-9.8L5 18l9.8-3.2z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (type === 'orbit') {
+    return (
+      <svg className={common} viewBox="0 0 36 36" aria-hidden="true">
+        <circle cx="18" cy="18" r="3.8" fill="currentColor" />
+        <path d="M6.5 18c4-7.4 19-7.4 23 0-4 7.4-19 7.4-23 0Z" fill="none" stroke="currentColor" strokeWidth="2.2" />
+        <path d="M18 6.5c7.4 4 7.4 19 0 23-7.4-4-7.4-19 0-23Z" fill="none" stroke="currentColor" strokeWidth="2.2" opacity="0.58" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className={common} viewBox="0 0 36 36" aria-hidden="true">
+      <path d="M18 5 21.5 14H31l-7.7 5.5 3 9.5L18 23.3 9.7 29l3-9.5L5 14h9.5z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function CompanyLoop() {
   const loopedMarks = [...companyMarks, ...companyMarks];
 
   return (
-    <section className="bg-[#1b1d1b] px-5 py-16 text-white sm:px-8">
+    <section className="border-y border-white/8 bg-[#141714] px-5 py-14 text-white sm:px-8">
       <div className="mx-auto max-w-7xl">
-        <p className="mb-10 text-center text-base font-bold text-white sm:text-lg">
+        <p className="mb-9 text-center text-sm font-black text-white sm:text-base">
           Teams building modern commerce experiences choose ASEA
         </p>
       </div>
 
       <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-linear-to-r from-[#1b1d1b] to-transparent sm:w-36" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-linear-to-l from-[#1b1d1b] to-transparent sm:w-36" />
-        <div className="asea-logo-track flex w-max items-center gap-16 whitespace-nowrap sm:gap-24">
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-linear-to-r from-[#141714] to-transparent sm:w-36" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-linear-to-l from-[#141714] to-transparent sm:w-36" />
+        <div className="asea-logo-track flex w-max items-center gap-8 whitespace-nowrap sm:gap-10">
           {loopedMarks.map((mark, index) => (
             <div
               key={`${mark.name}-${index}`}
-              className="flex min-w-max items-center gap-3 text-3xl text-white/72 transition hover:text-white sm:text-4xl"
+              className="group flex min-w-[220px] items-center justify-center gap-3 rounded-full border border-white/10 bg-white/[0.035] px-7 py-4 text-white/64 shadow-[0_14px_36px_rgba(0,0,0,0.16)] transition duration-300 hover:border-white/20 hover:bg-white/[0.07] hover:text-white sm:min-w-[248px]"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-md border border-white/12 bg-white/8 text-sm font-black text-white/70">
-                {mark.name.slice(0, 1)}
+              <span className="text-white/58 transition group-hover:text-[#f6c453]">
+                <CompanyMarkGlyph type={mark.glyph} />
               </span>
-              <span className={mark.style}>{mark.name}</span>
+              <span className={`text-[1.45rem] leading-none sm:text-[1.65rem] ${mark.wordClass}`}>
+                {mark.name}
+              </span>
             </div>
           ))}
         </div>

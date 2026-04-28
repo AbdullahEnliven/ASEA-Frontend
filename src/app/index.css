@@ -30,6 +30,11 @@ html {
   animation-play-state: paused;
 }
 
+.asea-load-progress {
+  width: 42%;
+  animation: asea-load-progress 1.45s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
 @keyframes asea-logo-scroll {
   from {
     transform: translateX(0);
@@ -39,9 +44,19 @@ html {
   }
 }
 
+@keyframes asea-load-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(240%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .asea-logo-track {
+  .asea-logo-track,
+  .asea-load-progress {
     animation: none;
-    transform: translateX(0);
+    transform: none;
   }
 }

@@ -52,12 +52,8 @@ export default function LoginPage() {
     }
   };
 
-  const handleOAuth = (provider) => {
-    if (provider !== 'github') {
-      toast.error(`${provider} login is not available yet`);
-      return;
-    }
-
+  const handleGithubOAuth = () => {
+    if (loading) return;
     setLoading(true);
     authService
       .getGithubOAuthUrl('login')
@@ -70,11 +66,6 @@ export default function LoginPage() {
         setLoading(false);
         toast.error('GitHub login is not configured');
       });
-  };
-
-  const handleGithubOAuth = () => {
-    if (loading) return;
-    handleOAuth('github');
   };
 
   return (
@@ -196,21 +187,14 @@ export default function LoginPage() {
                 <div className="w-full border-t border-[#d8d0c0]" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-[#fffaf0] px-3 font-bold text-[#8b8174]">or continue with</span>
+                <span className="bg-[#fffaf0] px-3 font-bold text-[#8b8174]">or continue with GitHub</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div>
               <Button
                 variant="secondary"
-                className="!rounded-lg !border-[#d8d0c0] !bg-white py-3 font-black !text-[#10131b] hover:!bg-[#f6f1e8]"
-                onClick={() => handleOAuth('google')}
-              >
-                Google
-              </Button>
-              <Button
-                variant="secondary"
-                className="!rounded-lg !border-[#d8d0c0] !bg-white py-3 font-black !text-[#10131b] hover:!bg-[#f6f1e8]"
+                className="w-full !rounded-lg !border-[#d8d0c0] !bg-white py-3 font-black !text-[#10131b] hover:!bg-[#f6f1e8]"
                 onClick={handleGithubOAuth}
                 disabled={loading}
               >

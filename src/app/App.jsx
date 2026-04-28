@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Spinner, ErrorBoundary } from '@/components/common';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
+import { ErrorBoundary } from '@/components/common';
 import CommandPalette from '@/components/common/CommandPalette';
 import PublicLayout from '@/components/layout/PublicLayout';
 import AppShell from '@/components/layout/AppShell';
@@ -35,7 +35,7 @@ const pageVariants = {
 
 function PageTransition({ children }) {
   return (
-    <motion.div
+    <Motion.div
       variants={pageVariants}
       initial="initial"
       animate="animate"
@@ -43,14 +43,28 @@ function PageTransition({ children }) {
       style={{ minHeight: '100%' }}
     >
       {children}
-    </motion.div>
+    </Motion.div>
   );
 }
 
 function Loading() {
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <Spinner size="lg" />
+    <div
+      className="flex min-h-screen items-center justify-center bg-[#f6f1e8] px-6 text-[#10131b]"
+      role="status"
+      aria-live="polite"
+      aria-label="ASEA is loading"
+    >
+      <div className="w-full max-w-[340px]">
+        <div className="flex items-center justify-between">
+          <span className="text-base font-black tracking-[0.34em]">ASEA</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.28em] text-[#007f75]">Loading</span>
+        </div>
+
+        <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#d8d0c0]">
+          <div className="asea-load-progress h-full rounded-full bg-[#10131b]" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -58,6 +72,10 @@ function Loading() {
 export default function App() {
   const location = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 });
+  }, [location.pathname]);
 
   useEffect(() => {
     const handler = (e) => {

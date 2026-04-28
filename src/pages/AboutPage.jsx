@@ -1,121 +1,165 @@
-import { motion } from 'framer-motion';
-import { Shield, Zap, Globe, Clock, Sparkles } from 'lucide-react';
+import { motion as Motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { ArrowRight, Code2, DatabaseZap, GitBranch, ShieldCheck, Sparkles, Workflow } from 'lucide-react';
 
 const stats = [
-  { label: 'Stores Generated', value: '10,000+' },
-  { label: 'Uptime', value: '99.9%' },
-  { label: 'Saved Hours', value: '500k+' },
-  { label: 'Global Creators', value: '5,000+' },
+  { value: '3m', label: 'average first build' },
+  { value: '42+', label: 'commerce modules' },
+  { value: '100%', label: 'exportable code' },
+  { value: '1', label: 'connected launch room' },
+];
+
+const principles = [
+  {
+    title: 'Start with the business',
+    copy: 'ASEA turns a plain-language store brief into customer journeys, schema, admin needs, and release priorities.',
+    icon: Workflow,
+    tone: 'bg-[#dff7f1] text-[#007f75]',
+  },
+  {
+    title: 'Keep the code inspectable',
+    copy: 'The builder is a working surface, not a black box. You can preview, edit, inspect, export, and keep moving.',
+    icon: Code2,
+    tone: 'bg-[#e7eaf3] text-[#20263a]',
+  },
+  {
+    title: 'Make data part of the first draft',
+    copy: 'Products, orders, customers, auth rules, and operational tables are shaped alongside the storefront.',
+    icon: DatabaseZap,
+    tone: 'bg-[#fff2cb] text-[#8a5d00]',
+  },
+  {
+    title: 'Ship with ownership',
+    copy: 'GitHub export, Supabase foundations, and deployment handoff are included so teams can own the result.',
+    icon: GitBranch,
+    tone: 'bg-[#ffe6df] text-[#ba4d41]',
+  },
+];
+
+const beliefs = [
+  'Commerce software should begin with a working product, not a blank repo.',
+  'AI output is only useful when teams can understand it, change it, and ship it.',
+  'Storefront, backend, admin, and release should be designed together.',
 ];
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen pt-32 pb-20 px-6 max-w-7xl mx-auto">
-      {/* Background blobs */}
-      <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-blue-600/5 blur-[150px] rounded-full -z-10" />
-      
-      <div className="max-w-3xl mx-auto text-center mb-24">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
+    <main className="bg-[#f6f1e8] text-[#10131b]">
+      <section className="mx-auto max-w-7xl px-5 pb-16 pt-32 sm:px-8 lg:pb-24">
+        <Motion.div
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8"
+          className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-end"
         >
-          <span className="text-xs font-medium text-blue-400 tracking-wide uppercase">Our Story</span>
-        </motion.div>
-        
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-5xl sm:text-6xl font-black tracking-tight mb-8"
-        >
-          Democratizing <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Software Creation</span>
-        </motion.h1>
-        
-        <motion.p
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-lg text-gray-400 leading-relaxed"
-        >
-          We believe that anyone should be able to build a business without getting bogged down in boilerplate code, infrastructure, and deployment pipelines. ASEA was built to bridge the gap between imagination and a deployed product.
-        </motion.p>
-      </div>
+          <div>
+            <div className="mb-6 inline-flex rounded-full border border-[#d8d0c0] bg-[#fffaf0] px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#007f75] shadow-[0_12px_30px_rgba(16,19,27,0.08)]">
+              About ASEA
+            </div>
+            <h1 className="max-w-4xl text-5xl font-black leading-[0.98] sm:text-6xl lg:text-7xl">
+              Commerce builders should start with a launch room.
+            </h1>
+          </div>
+          <div className="rounded-lg border border-[#d8d0c0] bg-[#fffaf0] p-6 shadow-[0_24px_70px_rgba(16,19,27,0.12)]">
+            <Sparkles className="mb-6 h-8 w-8 text-[#c8931f]" />
+            <p className="text-lg leading-8 text-[#4f5663]">
+              ASEA exists to remove the slowest part of launching commerce products: turning a business idea into
+              coordinated storefront, data model, admin workflow, and deployable code.
+            </p>
+          </div>
+        </Motion.div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-32">
-        {stats.map((s, i) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 * i }}
-            className="text-center p-6 bg-white/[0.02] border border-white/5 rounded-2xl"
-          >
-            <div className="text-3xl font-bold text-white mb-2">{s.value}</div>
-            <div className="text-sm text-gray-500 font-medium uppercase tracking-wider">{s.label}</div>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-16 items-center">
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-3xl font-bold mb-6">Built for builders, by builders.</h2>
-          <p className="text-gray-400 mb-6 leading-relaxed">
-            We spent years building e-commerce platforms the hard way. Writing the same authentication, shopping cart, and admin dashboard code hundreds of times. We knew there had to be a better way leveraging modern AI capabilities.
-          </p>
-          <p className="text-gray-400 leading-relaxed">
-            Our mission is simple: to reduce the time from idea to launched store from weeks to minutes, without sacrificing code quality or vendor lock-in. You own your code. Every single line.
-          </p>
-          
-          <div className="mt-10">
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-colors"
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((item, index) => (
+            <Motion.div
+              key={item.label}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: index * 0.06 }}
+              className="rounded-lg border border-[#d8d0c0] bg-white p-5 shadow-[0_16px_40px_rgba(16,19,27,0.08)]"
             >
-              <Sparkles className="w-4 h-4" />
-              Join the movement
-            </Link>
-          </div>
-        </motion.div>
+              <p className="text-4xl font-black">{item.value}</p>
+              <p className="mt-2 text-xs font-black uppercase tracking-[0.2em] text-[#8b8174]">{item.label}</p>
+            </Motion.div>
+          ))}
+        </div>
+      </section>
 
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-          className="grid grid-cols-2 gap-4"
-        >
-          <div className="space-y-4 pt-12">
-            <div className="p-6 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-white/5 rounded-3xl">
-              <Shield className="w-8 h-8 text-blue-400 mb-4" />
-              <h3 className="font-semibold mb-2">Secure by Default</h3>
-              <p className="text-xs text-gray-400">Enterprise grade security out of the box.</p>
-            </div>
-            <div className="p-6 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-white/5 rounded-3xl">
-              <Clock className="w-8 h-8 text-emerald-400 mb-4" />
-              <h3 className="font-semibold mb-2">Speed</h3>
-              <p className="text-xs text-gray-400">Ship in minutes, not months.</p>
-            </div>
+      <section className="border-y border-[#d8d0c0] bg-[#fffaf0] px-5 py-16 sm:px-8 lg:py-24">
+        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#007f75]">Why we built it</p>
+            <h2 className="mt-5 text-4xl font-black leading-tight sm:text-5xl">The first draft should already be useful.</h2>
+            <p className="mt-6 text-base leading-8 text-[#5d6472]">
+              Most store builds lose time stitching together pages, auth, tables, roles, and deployment decisions.
+              ASEA makes those decisions visible early, so founders and teams can inspect the whole project from day one.
+            </p>
           </div>
-          <div className="space-y-4 pb-12">
-            <div className="p-6 bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-white/5 rounded-3xl">
-              <Zap className="w-8 h-8 text-orange-400 mb-4" />
-              <h3 className="font-semibold mb-2">Performant</h3>
-              <p className="text-xs text-gray-400">Edge-ready architecture.</p>
-            </div>
-            <div className="p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-white/5 rounded-3xl">
-              <Globe className="w-8 h-8 text-purple-400 mb-4" />
-              <h3 className="font-semibold mb-2">Global</h3>
-              <p className="text-xs text-gray-400">Reach customers anywhere.</p>
-            </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {principles.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <Motion.article
+                  key={item.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-80px' }}
+                  transition={{ duration: 0.45, delay: index * 0.06 }}
+                  className="rounded-lg border border-[#d8d0c0] bg-white p-6 shadow-[0_18px_48px_rgba(16,19,27,0.08)]"
+                >
+                  <div className={`mb-8 inline-flex h-12 w-12 items-center justify-center rounded-lg ${item.tone}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-xl font-black">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[#5d6472]">{item.copy}</p>
+                </Motion.article>
+              );
+            })}
           </div>
-        </motion.div>
-      </div>
-    </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:py-24">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="rounded-lg bg-[#10131b] p-8 text-white shadow-[0_24px_70px_rgba(16,19,27,0.18)]">
+            <ShieldCheck className="mb-10 h-9 w-9 text-[#8dd9ce]" />
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#f6c453]">Our standard</p>
+            <h2 className="mt-4 text-4xl font-black leading-tight">Clear output. Clean handoff. No trapped project.</h2>
+          </div>
+
+          <div className="space-y-3">
+            {beliefs.map((belief, index) => (
+              <Motion.div
+                key={belief}
+                initial={{ opacity: 0, x: 18 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.08 }}
+                className="flex gap-4 rounded-lg border border-[#d8d0c0] bg-white p-5 shadow-[0_14px_34px_rgba(16,19,27,0.07)]"
+              >
+                <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#dff7f1] text-xs font-black text-[#007f75]">
+                  {index + 1}
+                </span>
+                <p className="text-base font-bold leading-7 text-[#343945]">{belief}</p>
+              </Motion.div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-16 rounded-lg border border-[#d8d0c0] bg-[#fffaf0] p-6 sm:flex sm:items-center sm:justify-between sm:p-8">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#007f75]">Build with ASEA</p>
+            <h3 className="mt-2 text-2xl font-black">Turn your commerce brief into a working project.</h3>
+          </div>
+          <Link
+            to="/register"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#10131b] px-5 py-3 text-sm font-black text-white transition hover:bg-[#007f75] sm:mt-0"
+          >
+            Start building <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+    </main>
   );
 }
