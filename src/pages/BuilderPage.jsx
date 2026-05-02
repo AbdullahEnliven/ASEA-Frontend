@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import {
   Monitor,
   Tablet,
@@ -18,6 +18,7 @@ import {
   Copy,
   Download,
   Database,
+  Github,
   Send,
   MessageSquare,
   Sparkles,
@@ -42,11 +43,12 @@ import { integrationsService } from '@/services/integrations.service';
 import useAuthStore from '@/store/auth.store';
 import { DEVICE_WIDTHS } from '@/constants';
 import { Button } from '@/components/common';
+import { ProjectDeployModal, ProjectGithubModal } from '@/components/project/ProjectActionModals';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
 
 // --- Toolbar ------------------------------------------
-function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
+function BuilderToolbar({ setDeployedUrl }) {
   const {
     deviceMode,
     setDeviceMode,
@@ -56,11 +58,10 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
     setViewMode,
   } = useBuilderStore();
   const activeProject = useProjectsStore((s) => s.activeProject);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [downloading, setDownloading] = useState(false);
-  const [deploying, setDeploying] = useState(false);
   const [deployModalOpen, setDeployModalOpen] = useState(false);
-  const [customSubdomain, setCustomSubdomain] = useState('');
-  const [subdomainError, setSubdomainError] = useState('');
+  const [githubModalOpen, setGithubModalOpen] = useState(false);
   const [supabaseConnected, setSupabaseConnected] = useState(true);
   const [checkingSupabase, setCheckingSupabase] = useState(false);
   const activeProjectSupabaseConnected = Boolean(
@@ -73,25 +74,38 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
     { mode: 'mobile', icon: Smartphone },
   ];
 
-  const sanitizeSubdomain = useCallback((value = '') => {
-    const plainValue = String(value)
-      .toLowerCase()
-      .replace(/^https?:\/\//, '')
-      .split('/')[0]
-      .split('.')[0];
-    return plainValue
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  }, []);
-
   useEffect(() => {
-    if (!activeProject?.name) return;
-    setCustomSubdomain((current) => {
-      if (current.trim()) return current;
-      return sanitizeSubdomain(activeProject.name) || 'my-store';
-    });
-  }, [activeProject?.name, sanitizeSubdomain]);
+    const modal = searchParams.get('modal');
+    const deploy = searchParams.get('deploy');
+    const github = searchParams.get('github') || searchParams.get('gh');
+
+    if (modal === 'deploy' || deploy === 'open') {
+      setDeployModalOpen(true);
+    }
+    if (modal === 'github' || github) {
+      setGithubModalOpen(true);
+    }
+  }, [searchParams]);
+
+  const clearActionQuery = useCallback(() => {
+    const actionKeys = ['modal', 'deploy', 'github', 'gh', 'tab'];
+    const hasActionQuery = actionKeys.some((key) => searchParams.has(key));
+    if (!hasActionQuery) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    actionKeys.forEach((key) => nextParams.delete(key));
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const closeDeployModal = useCallback(() => {
+    setDeployModalOpen(false);
+    clearActionQuery();
+  }, [clearActionQuery]);
+
+  const closeGithubModal = useCallback(() => {
+    setGithubModalOpen(false);
+    clearActionQuery();
+  }, [clearActionQuery]);
 
   useEffect(() => {
     if (!activeProject?.id) return;
@@ -134,35 +148,6 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
       toast.error('Failed to download code');
     } finally {
       setDownloading(false);
-    }
-  };
-
-  const handleDeploy = async () => {
-    if (!activeProject?.id) return;
-    const sanitized =
-      sanitizeSubdomain(customSubdomain) ||
-      sanitizeSubdomain(activeProject?.name || '') ||
-      `store-${String(activeProject.id).slice(0, 6)}`;
-    if (!sanitized || sanitized.length < 3) {
-      setSubdomainError('Please enter at least 3 characters (letters, numbers, hyphens).');
-      return;
-    }
-
-    setDeploying(true);
-    setSubdomainError('');
-    try {
-      const res = await integrationsService.deployProductionToVercel(activeProject.id, { subdomain: sanitized });
-      const url = res.data?.url || '';
-      setDeployedUrl(url);
-      setDeployModalOpen(false);
-      toast.success('Deployed successfully');
-      if (url) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
-    } catch {
-      toast.error('Failed to deploy');
-    } finally {
-      setDeploying(false);
     }
   };
 
@@ -225,15 +210,14 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
       </div>
 
       <div className="flex items-center gap-3">
-        {!checkingSupabase && !supabaseConnected && activeProject?.id && (
-          <Link
-            to={`/projects/${activeProject.id}/deploy?tab=supabase`}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#c8931f]/40 bg-[#fff2cb] px-3 py-1.5 text-[11px] font-black text-[#8a5d00] transition-colors hover:bg-[#ffe8a3]"
-            title="Connect backend database"
+        {!checkingSupabase && !supabaseConnected && (
+          <div
+            className="inline-flex items-center gap-2 rounded-lg border border-[#c8931f]/40 bg-[#fff2cb] px-3 py-1.5 text-[11px] font-black text-[#8a5d00]"
+            title="Backend database is not connected"
           >
             <Database size={13} />
-            Connect Supabase
-          </Link>
+            Database needed
+          </div>
         )}
         <button
           onClick={handleDownloadCode}
@@ -247,12 +231,14 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
           Share
         </button>
         {activeProject?.id ? (
-          <Link
-            to={`/projects/${activeProject.id}/deploy?tab=github`}
+          <button
+            type="button"
+            onClick={() => setGithubModalOpen(true)}
             className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-black text-[#5d6472] transition-colors hover:border-[#d8d0c0] hover:bg-white hover:text-[#10131b]"
           >
-            GitHub
-          </Link>
+            <Github size={14} />
+            Connect to GitHub
+          </button>
         ) : (
           <button
             type="button"
@@ -270,83 +256,22 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
             size="sm"
             className="!border-[#10131b] !bg-[#10131b] !text-white hover:!bg-[#007f75]"
             onClick={() => {
-              setSubdomainError('');
               setDeployModalOpen(true);
             }}
-            loading={deploying}
           >
             <Rocket size={13} />
-            {deploying ? 'Deploying...' : 'Deploy'}
+            Deploy
           </Button>
         </div>
       </div>
 
-      {deployModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div
-            className="absolute inset-0 bg-black/70"
-            onClick={() => {
-              if (!deploying) setDeployModalOpen(false);
-            }}
-          />
-          <div className="relative w-full max-w-md rounded-2xl border border-[#d8d0c0] bg-[#fffaf0] p-5 text-[#10131b] shadow-2xl">
-            <h3 className="text-base font-black">Choose your custom URL</h3>
-            <p className="mt-1 text-xs text-[#5d6472]">
-              Pick a Vercel subdomain. If left empty, we use your store name.
-            </p>
-
-            <div className="mt-4 flex items-center overflow-hidden rounded-xl border border-[#d8d0c0] bg-white">
-              <input
-                value={customSubdomain}
-                onChange={(e) => {
-                  setCustomSubdomain(sanitizeSubdomain(e.target.value));
-                  setSubdomainError('');
-                }}
-                placeholder="my-awesome-store"
-                className="flex-1 bg-transparent px-3 py-2.5 text-sm font-semibold text-[#10131b] outline-none placeholder:text-[#a9a094]"
-                disabled={deploying}
-              />
-              <span className="border-l border-[#d8d0c0] px-3 py-2.5 text-xs font-bold text-[#8b8174]">.vercel.app</span>
-            </div>
-
-            {!customSubdomain.trim() && (
-              <p className="mt-2 text-xs text-[#8b8174]">
-                Using: {(sanitizeSubdomain(activeProject?.name || '') || `store-${String(activeProject?.id || '').slice(0, 6)}`)}.vercel.app
-              </p>
-            )}
-
-            {subdomainError && <p className="mt-2 text-xs text-red-400">{subdomainError}</p>}
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="!border-[#d8d0c0] !bg-white !text-[#10131b] hover:!bg-[#f6f1e8]"
-                onClick={() => setDeployModalOpen(false)}
-                disabled={deploying}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                className="!border-[#10131b] !bg-[#10131b] !text-white hover:!bg-[#007f75]"
-                onClick={handleDeploy}
-                loading={deploying}
-              >
-                <Rocket size={13} />
-                {deploying ? 'Deploying...' : 'Deploy now'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-                <Rocket size={13} />
-                {deploying ? 'Deploying...' : 'Deploy now'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ProjectGithubModal open={githubModalOpen} onClose={closeGithubModal} project={activeProject} />
+      <ProjectDeployModal
+        open={deployModalOpen}
+        onClose={closeDeployModal}
+        project={activeProject}
+        onDeployed={setDeployedUrl}
+      />
     </div>
   );
 }
@@ -1189,6 +1114,7 @@ function CodeViewerPane() {
   const [activeFilePath, setActiveFilePath] = useState('');
   const [fileContent, setFileContent] = useState('');
   const [loadingFiles, setLoadingFiles] = useState(false);
+  const [filesLoaded, setFilesLoaded] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -1255,11 +1181,13 @@ function CodeViewerPane() {
       setActiveFilePath('');
       setFileContent('// Failed to load files');
     } finally {
+      setFilesLoaded(true);
       setLoadingFiles(false);
     }
   }, [activeProject?.id, normalizePath]);
 
   useEffect(() => {
+    setFilesLoaded(false);
     loadFiles();
   }, [loadFiles]);
 
@@ -1380,6 +1308,24 @@ function CodeViewerPane() {
     );
   };
 
+  const renderFileSkeleton = () => (
+    <div className="space-y-2 px-2 py-3" aria-label="Loading project files">
+      {[
+        { width: 'w-28', indent: 'ml-0' },
+        { width: 'w-40', indent: 'ml-5' },
+        { width: 'w-32', indent: 'ml-5' },
+        { width: 'w-24', indent: 'ml-0' },
+        { width: 'w-36', indent: 'ml-5' },
+        { width: 'w-44', indent: 'ml-5' },
+      ].map((item, index) => (
+        <div key={index} className={`flex items-center gap-2 ${item.indent}`}>
+          <span className="h-3 w-3 shrink-0 animate-pulse rounded bg-[#e4dccf]" />
+          <span className={`h-3 ${item.width} animate-pulse rounded bg-[#e4dccf]`} />
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className="flex flex-1 overflow-hidden bg-[#f6f1e8] p-4 lg:p-6">
       <div className="mr-4 flex w-72 flex-col overflow-hidden rounded-2xl border border-[#d8d0c0] bg-white shadow-[0_18px_48px_rgba(16,19,27,0.1)]">
@@ -1395,7 +1341,9 @@ function CodeViewerPane() {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
-          {files.length === 0 ? (
+          {loadingFiles || !filesLoaded ? (
+            renderFileSkeleton()
+          ) : files.length === 0 ? (
             <p className="px-2 py-3 text-xs font-semibold text-[#8b8174]">No files available</p>
           ) : (
             renderTree(tree)
@@ -1484,7 +1432,7 @@ export default function BuilderPage() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#f6f1e8] text-[#10131b]">
-      <BuilderToolbar deployedUrl={deployedUrl} setDeployedUrl={setDeployedUrl} />
+      <BuilderToolbar setDeployedUrl={setDeployedUrl} />
       <div className="flex h-[calc(100vh-64px)] flex-1 overflow-hidden">
         <ChatSidebar />
         {viewMode === 'preview' ? <LivePreview deployedUrl={deployedUrl} /> : <CodeViewerPane />}

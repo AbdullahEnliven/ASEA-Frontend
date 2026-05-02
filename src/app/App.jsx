@@ -18,7 +18,6 @@ const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
 const NewProjectPage = lazy(() => import('@/pages/NewProjectPage'));
 const BuilderPage = lazy(() => import('@/pages/BuilderPage'));
 const CodeViewerPage = lazy(() => import('@/pages/CodeViewerPage'));
-const DeployPage = lazy(() => import('@/pages/DeployPage'));
 const ProjectSettingsPage = lazy(() => import('@/pages/ProjectSettingsPage'));
 const AccountPage = lazy(() => import('@/pages/AccountPage'));
 const BillingPage = lazy(() => import('@/pages/BillingPage'));
@@ -123,7 +122,6 @@ export default function App() {
               <Route path="/projects/new" element={<PageTransition><NewProjectPage /></PageTransition>} />
               <Route path="/projects/:id/code" element={<PageTransition><CodeViewerPage /></PageTransition>} />
               <Route path="/projects/:id/settings" element={<PageTransition><ProjectSettingsPage /></PageTransition>} />
-              <Route path="/projects/:id/deploy" element={<PageTransition><DeployPage /></PageTransition>} />
               <Route path="/account" element={<PageTransition><AccountPage /></PageTransition>} />
               <Route path="/account/billing" element={<PageTransition><BillingPage /></PageTransition>} />
             </Route>

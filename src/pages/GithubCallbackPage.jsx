@@ -64,10 +64,10 @@ export default function GithubCallbackPage() {
         try {
           await integrationsService.connectGithub(projectId, { code, state });
           toast.success('GitHub connected successfully');
-          navigate(`/projects/${projectId}/deploy?tab=github&gh=connected`, { replace: true });
+          navigate(`/projects/${projectId}?github=connected`, { replace: true });
         } catch (err) {
           toast.error(err.response?.data?.detail || 'Failed to connect GitHub');
-          navigate(`/projects/${projectId}/deploy?tab=github`, { replace: true });
+          navigate(`/projects/${projectId}?github=error`, { replace: true });
         }
         return;
       }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, LayoutDashboard, PlusCircle, Settings, CreditCard, Code2, Rocket, X } from 'lucide-react';
+import { Search, LayoutDashboard, PlusCircle, Settings, CreditCard, Code2, X } from 'lucide-react';
 import useProjectsStore from '@/store/projects.store';
 
 const STATIC_COMMANDS = [
@@ -26,7 +26,6 @@ export default function CommandPalette({ open, onClose }) {
     group: 'Projects',
     extra: [
       { label: 'Code', icon: Code2, path: `/projects/${p.id}/code` },
-      { label: 'Deploy', icon: Rocket, path: `/projects/${p.id}/deploy` },
     ],
   }));
 
