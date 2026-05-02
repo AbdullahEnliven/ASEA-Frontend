@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Bot,
   Check,
   Database,
+  FlaskConical,
   Layers3,
   Layout,
   Loader2,
@@ -22,6 +23,8 @@ import { STORE_CATEGORIES } from '@/constants';
 import useGenerationStore from '@/store/generation.store';
 import useProjectsStore from '@/store/projects.store';
 import { projectsService } from '@/services/projects.service';
+
+const BETA_PROJECT_LIMIT = 5;
 
 const inputClass =
   '!rounded-lg !border-[#d8d0c0] !bg-white px-4 py-3 !text-[#10131b] placeholder:!text-[#9a9387] focus:!border-[#0f766e] focus:!ring-[#0f766e]/20';
@@ -426,8 +429,41 @@ export default function NewProjectPage() {
   const [data, setData] = useState({});
   const [projectId, setProjectId] = useState(null);
 
+  const projects = useProjectsStore((s) => s.projects);
   const addProject = useProjectsStore((s) => s.addProject);
   const generationReset = useGenerationStore((s) => s.reset);
+
+  // Guard: show limit-reached screen if user is already at cap
+  if (projects.length >= BETA_PROJECT_LIMIT) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center px-5">
+        <div className="mx-auto max-w-lg text-center">
+          <span className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[#fff2c7] text-[#9a6a0a]">
+            <FlaskConical size={36} />
+          </span>
+          <h1 className="text-3xl font-black text-[#10131b]">Beta limit reached</h1>
+          <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-[#5c6270]">
+            You've used all <strong className="font-black text-[#10131b]">{BETA_PROJECT_LIMIT}</strong> project slots
+            available in the free beta plan. Delete an existing project to create a new one.
+          </p>
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#10131b] px-6 py-3 text-sm font-black text-white transition hover:bg-[#253044]"
+            >
+              <ArrowRight size={15} /> Go to dashboard
+            </Link>
+            <Link
+              to="/billing"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#d8d0c0] bg-white px-6 py-3 text-sm font-black text-[#10131b] transition hover:border-[#10131b]"
+            >
+              View plan details
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const updateData = useCallback((updates) => {
     setData((prev) => ({ ...prev, ...updates }));

@@ -6,6 +6,7 @@ import {
   DatabaseZap,
   Download,
   ExternalLink,
+  FlaskConical,
   HardDrive,
   LayoutGrid,
   List,
@@ -21,6 +22,8 @@ import toast from 'react-hot-toast';
 import { Badge, Button } from '@/components/common';
 import { projectsService } from '@/services/projects.service';
 import useProjectsStore from '@/store/projects.store';
+
+const BETA_PROJECT_LIMIT = 5;
 
 const statusVariant = {
   draft: 'default',
@@ -345,12 +348,22 @@ export default function DashboardPage() {
               Track generated projects, deployment readiness, database connections, exports, and the next launch action from one focused workspace.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link to="/projects/new">
-                <Button className="!rounded-lg !bg-[#10131b] px-5 py-3 font-black !text-white hover:!bg-[#253044]">
-                  <Plus size={16} />
-                  New project
-                </Button>
-              </Link>
+              {projects.length < BETA_PROJECT_LIMIT ? (
+                <Link to="/projects/new">
+                  <Button className="!rounded-lg !bg-[#10131b] px-5 py-3 font-black !text-white hover:!bg-[#253044]">
+                    <Plus size={16} />
+                    New project
+                  </Button>
+                </Link>
+              ) : (
+                <button
+                  disabled
+                  title="Beta limit reached — delete a project to create a new one"
+                  className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-[#10131b]/40 px-5 py-3 text-sm font-black text-white/50"
+                >
+                  <Plus size={16} /> New project
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setFiltersOpen(true)}
@@ -396,6 +409,48 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Beta plan usage bar */}
+      <div className="mb-8 overflow-hidden rounded-xl border border-[#d8d0c0] bg-[#fffaf0] p-4 shadow-[0_10px_28px_rgba(22,24,31,0.04)]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#007f75]/10 text-[#007f75]">
+              <FlaskConical size={16} />
+            </span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#007f75]">Beta plan</p>
+              <p className="text-sm font-bold text-[#10131b]">
+                {projects.length} of {BETA_PROJECT_LIMIT} projects used
+                {projects.length >= BETA_PROJECT_LIMIT && (
+                  <span className="ml-2 text-[#ba4d41]">— limit reached</span>
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 sm:shrink-0">
+            <div className="flex gap-1">
+              {Array.from({ length: BETA_PROJECT_LIMIT }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-2 w-8 rounded-full transition-colors ${
+                    i < projects.length
+                      ? projects.length >= BETA_PROJECT_LIMIT
+                        ? 'bg-[#ba4d41]'
+                        : 'bg-[#0f766e]'
+                      : 'bg-[#d8d0c0]'
+                  }`}
+                />
+              ))}
+            </div>
+            <Link
+              to="/billing"
+              className="text-xs font-black text-[#007f75] hover:underline"
+            >
+              View plan
+            </Link>
+          </div>
+        </div>
+      </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {statCards.map(({ label, value, glyph, helper }) => (
@@ -457,11 +512,21 @@ export default function DashboardPage() {
                 <List size={16} />
               </button>
             </div>
-            <Link to="/projects/new">
-              <Button size="md" className="!rounded-lg !bg-[#10131b] px-4 py-2.5 font-black !text-white hover:!bg-[#253044]">
+            {projects.length < BETA_PROJECT_LIMIT ? (
+              <Link to="/projects/new">
+                <Button size="md" className="!rounded-lg !bg-[#10131b] px-4 py-2.5 font-black !text-white hover:!bg-[#253044]">
+                  <Plus size={16} /> New project
+                </Button>
+              </Link>
+            ) : (
+              <button
+                disabled
+                title="Beta limit reached"
+                className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-[#10131b]/40 px-4 py-2.5 text-sm font-black text-white/50"
+              >
                 <Plus size={16} /> New project
-              </Button>
-            </Link>
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -1,187 +1,208 @@
-import { Check, CreditCard, Gauge, Layers3, ShieldCheck, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Check, FlaskConical, Folders, Gauge, HelpCircle, Plus, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/common';
+import { projectsService } from '@/services/projects.service';
 
-const plans = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: '/month',
-    caption: 'Validate one store idea.',
-    features: ['1 project', '500 MB storage', 'Community support'],
-    current: true,
-  },
-  {
-    name: 'Pro',
-    price: '$19',
-    period: '/month',
-    caption: 'Launch and iterate faster.',
-    features: ['Unlimited projects', '10 GB storage', 'Priority support', 'Custom domains'],
-    current: false,
-    popular: true,
-  },
-  {
-    name: 'Team',
-    price: '$49',
-    period: '/month',
-    caption: 'Coordinate multiple brands.',
-    features: ['Everything in Pro', '50 GB storage', 'Team collaboration', 'SSO', 'SLA'],
-    current: false,
-  },
-];
+const BETA_LIMIT = 5;
 
-const usage = [
-  { label: 'Projects', used: '0', limit: '1', percent: 10 },
-  { label: 'Storage', used: '0 MB', limit: '500 MB', percent: 0 },
+const included = [
+  `${BETA_LIMIT} active projects`,
+  'AI store generation',
+  'Live preview builder',
+  'Inspectable code view',
+  'GitHub & deployment workflow',
+  'AI code editor agent',
+  'Supabase-ready schema',
+  'Community support',
 ];
 
 export default function BillingPage() {
+  const [projectCount, setProjectCount] = useState(null);
+
+  useEffect(() => {
+    projectsService
+      .list()
+      .then((res) => {
+        const items = res.data?.items ?? res.data ?? [];
+        setProjectCount(Array.isArray(items) ? items.length : 0);
+      })
+      .catch(() => setProjectCount(0));
+  }, []);
+
+  const used = projectCount ?? 0;
+  const pct = Math.min(Math.round((used / BETA_LIMIT) * 100), 100);
+  const remaining = Math.max(BETA_LIMIT - used, 0);
+  const atLimit = used >= BETA_LIMIT;
+
   return (
     <div className="mx-auto max-w-7xl text-[#10131b]">
-      <section className="mb-8 overflow-hidden rounded-lg border border-[#d8d0c0] bg-[#fffaf0] shadow-[0_20px_70px_rgba(22,24,31,0.08)]">
-        <div className="grid gap-8 p-6 lg:grid-cols-[1fr_22rem] lg:p-8">
+      {/* ── Hero ──────────────────────────────────────────────────── */}
+      <section className="mb-8 overflow-hidden rounded-2xl border border-[#10131b] bg-[#10131b] shadow-[0_24px_80px_rgba(16,19,27,0.22)]">
+        <div className="grid gap-8 p-6 lg:grid-cols-[1fr_20rem] lg:p-8">
+          {/* Left */}
           <div>
-            <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-[#0f766e]">
-              Billing
-            </p>
-            <h1 className="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">
-              Scale your launch room when the work gets real.
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#f6c453]/40 bg-[#f6c453]/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#f6c453]">
+              <FlaskConical size={12} /> Beta Plan — Free
+            </div>
+            <h1 className="max-w-2xl text-4xl font-black tracking-tight text-white sm:text-5xl">
+              You're on the free beta plan.
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-[#5c6270]">
-              Manage your plan, usage, and upgrade path for generated stores, exports, domains, and team workflows.
+            <p className="mt-5 max-w-xl text-base leading-7 text-white/55">
+              While we're in beta there are no paid plans, no payment processors, and nothing to
+              upgrade. Every user gets{' '}
+              <strong className="font-black text-white">{BETA_LIMIT} projects</strong> for free.
             </p>
           </div>
 
-          <div className="rounded-lg bg-[#10131b] p-5 text-white">
-            <div className="mb-8 flex items-center justify-between">
-              <span className="rounded-lg bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#10131b]">
+          {/* Right — current-plan card */}
+          <div className="flex flex-col justify-between rounded-xl border border-white/10 bg-white/6 p-6">
+            <div>
+              <p className="mb-1 text-xs font-black uppercase tracking-[0.18em] text-white/40">
                 Current plan
-              </span>
-              <CreditCard className="h-6 w-6 text-[#f2b84b]" />
+              </p>
+              <p className="text-4xl font-black text-white">Beta Free</p>
+              <p className="mt-1.5 text-sm font-bold text-white/45">No payment method needed</p>
             </div>
-            <p className="text-5xl font-black tracking-tight">Free</p>
-            <p className="mt-2 text-sm font-bold text-white/58">No payment method connected</p>
-            <div className="mt-6 rounded-lg border border-white/10 bg-white/8 p-4">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">Next step</p>
-              <p className="mt-2 text-sm font-bold text-white">Upgrade when you need more projects or custom domains.</p>
+            <div className="mt-6 rounded-lg border border-white/8 bg-white/5 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-white/35">Status</p>
+              <p className="mt-2 text-sm font-bold text-[#8dd9ce]">
+                ✦ Active — enjoy full beta access
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="mb-8 grid gap-4 md:grid-cols-2">
-        {usage.map((item) => (
-          <div key={item.label} className="rounded-lg border border-[#d8d0c0] bg-white p-5 shadow-[0_14px_45px_rgba(22,24,31,0.05)]">
-            <div className="mb-5 flex items-center justify-between">
+      {/* ── Usage meter ───────────────────────────────────────────── */}
+      <section className="mb-8">
+        <div className="rounded-2xl border border-[#d8d0c0] bg-white p-6 shadow-[0_14px_45px_rgba(22,24,31,0.05)]">
+          <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#dff7f1] text-[#0f766e]">
+                <Folders size={18} />
+              </span>
               <div>
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#6f766f]">{item.label}</p>
-                <p className="mt-2 text-2xl font-black text-[#10131b]">
-                  {item.used} <span className="text-sm font-bold text-[#6f766f]">/ {item.limit}</span>
+                <p className="text-sm font-black uppercase tracking-[0.14em] text-[#6f766f]">
+                  Project usage
+                </p>
+                <p className="text-2xl font-black text-[#10131b]">
+                  {projectCount === null ? '–' : used}
+                  <span className="text-sm font-bold text-[#6f766f]"> / {BETA_LIMIT}</span>
                 </p>
               </div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#dff7f1] text-[#0f766e]">
-                <Gauge size={18} />
+            </div>
+            {atLimit ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f0c9c1] bg-[#fff4f1] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#ba4d41]">
+                Limit reached
               </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#eee6d7]">
-              <div className="h-full rounded-full bg-[#0f766e]" style={{ width: `${item.percent}%` }} />
-            </div>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#007f75]/25 bg-[#dff7f1] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#007f75]">
+                {remaining} slot{remaining !== 1 ? 's' : ''} remaining
+              </span>
+            )}
           </div>
-        ))}
+
+          {/* Progress bar */}
+          <div className="h-3 overflow-hidden rounded-full bg-[#eee6d7]">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${atLimit ? 'bg-[#ba4d41]' : 'bg-[#0f766e]'}`}
+              style={{ width: `${projectCount === null ? 0 : pct}%` }}
+            />
+          </div>
+
+          {/* Slot dots */}
+          <div className="mt-3 flex gap-1.5">
+            {Array.from({ length: BETA_LIMIT }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 flex-1 rounded-full transition-colors ${
+                  i < used
+                    ? atLimit
+                      ? 'bg-[#ba4d41]'
+                      : 'bg-[#0f766e]'
+                    : 'bg-[#d8d0c0]'
+                }`}
+              />
+            ))}
+          </div>
+
+          {atLimit ? (
+            <p className="mt-4 text-sm font-bold text-[#ba4d41]">
+              You've reached the 5-project limit. Delete an existing project to create a new one.
+            </p>
+          ) : (
+            <div className="mt-4 flex items-center gap-3">
+              <Link to="/projects/new">
+                <Button className="!rounded-lg !bg-[#10131b] px-4 py-2.5 text-sm font-black !text-white hover:!bg-[#253044]">
+                  <Plus size={14} /> New project
+                </Button>
+              </Link>
+              <p className="text-sm font-bold text-[#6f766f]">
+                {remaining} of {BETA_LIMIT} slots available
+              </p>
+            </div>
+          )}
+        </div>
       </section>
 
-      <section className="mb-8">
-        <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-          <div>
-            <p className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-[#9a6a0a]">Plans</p>
-            <h2 className="text-3xl font-black tracking-tight text-[#10131b]">Choose your launch capacity.</h2>
-          </div>
-          <p className="max-w-lg text-sm leading-6 text-[#5c6270]">
-            Upgrade paths are designed around how many stores you are building and how much launch control you need.
+      {/* ── What's included ───────────────────────────────────────── */}
+      <section className="mb-8 rounded-2xl border border-[#d8d0c0] bg-[#fffaf0] p-6 shadow-[0_14px_45px_rgba(22,24,31,0.05)]">
+        <div className="mb-6">
+          <p className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-[#007f75]">
+            Beta plan includes
           </p>
+          <h2 className="text-2xl font-black tracking-tight text-[#10131b]">
+            Everything we've built, at no cost.
+          </h2>
         </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {plans.map((plan) => (
-            <article
-              key={plan.name}
-              className={`relative rounded-lg border p-6 shadow-[0_18px_55px_rgba(22,24,31,0.06)] ${
-                plan.popular
-                  ? 'border-[#0f766e]/45 bg-[#dff7f1]'
-                  : 'border-[#d8d0c0] bg-white'
-              }`}
-            >
-              {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-lg bg-[#10131b] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-white">
-                  Best fit
-                </span>
-              )}
-              <div className="mb-7 flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-2xl font-black text-[#10131b]">{plan.name}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#5c6270]">{plan.caption}</p>
-                </div>
-                <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${plan.popular ? 'bg-[#0f766e] text-white' : 'bg-[#fff2c7] text-[#9a6a0a]'}`}>
-                  {plan.popular ? <Sparkles size={18} /> : <Layers3 size={18} />}
-                </span>
-              </div>
-
-              <div className="mb-7">
-                <span className="text-5xl font-black tracking-tight text-[#10131b]">{plan.price}</span>
-                <span className="text-sm font-bold text-[#6f766f]">{plan.period}</span>
-              </div>
-
-              <ul className="mb-8 space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3 text-sm font-bold text-[#343945]">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#fffaf0] text-[#0f766e]">
-                      <Check size={14} />
-                    </span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              {plan.current ? (
-                <Button
-                  variant="secondary"
-                  className="w-full !rounded-lg !border-[#d8d0c0] !bg-[#fffaf0] font-black !text-[#6f766f]"
-                  disabled
-                >
-                  Current plan
-                </Button>
-              ) : (
-                <Button
-                  className={`w-full !rounded-lg font-black ${
-                    plan.popular
-                      ? '!bg-[#10131b] !text-white hover:!bg-[#253044]'
-                      : '!border-[#d8d0c0] !bg-white !text-[#10131b] hover:!bg-[#f6f1e8]'
-                  }`}
-                  variant={plan.popular ? 'primary' : 'secondary'}
-                >
-                  Upgrade
-                </Button>
-              )}
-            </article>
+        <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+          {included.map((item) => (
+            <div key={item} className="flex items-center gap-3 text-sm font-bold text-[#343945]">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#dff7f1] text-[#0f766e]">
+                <Check size={12} strokeWidth={3} />
+              </span>
+              {item}
+            </div>
           ))}
         </div>
       </section>
 
-      <section className="rounded-lg border border-[#d8d0c0] bg-[#fffaf0] p-6 shadow-[0_18px_55px_rgba(22,24,31,0.05)]">
+      {/* ── No upgrade notice ─────────────────────────────────────── */}
+      <section className="mb-8 rounded-2xl border border-[#d8d0c0] bg-white p-6 shadow-[0_14px_45px_rgba(22,24,31,0.05)]">
+        <div className="flex items-start gap-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#fff2c7] text-[#9a6a0a]">
+            <Gauge size={20} />
+          </span>
+          <div>
+            <h3 className="text-lg font-black text-[#10131b]">No paid plans — yet</h3>
+            <p className="mt-1 text-sm leading-6 text-[#5c6270]">
+              We're still in beta and haven't launched pricing. When we do, we'll give all beta
+              users advance notice and a generous transition window. For now, just build.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Support ───────────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-[#d8d0c0] bg-[#fffaf0] p-6 shadow-[0_14px_45px_rgba(22,24,31,0.04)]">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#dff7f1] text-[#0f766e]">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#dff7f1] text-[#0f766e]">
               <ShieldCheck size={20} />
             </span>
             <div>
-              <h2 className="text-xl font-black text-[#10131b]">Billing support</h2>
+              <h2 className="text-xl font-black text-[#10131b]">Have a question?</h2>
               <p className="mt-1 text-sm leading-6 text-[#5c6270]">
-                Need invoices, annual billing, or a custom workspace plan? Contact the team and we will help you set it up.
+                Reach out to the team for help with your projects, beta access, or anything else.
               </p>
             </div>
           </div>
-          <Button className="!rounded-lg !bg-[#10131b] px-5 py-3 font-black !text-white hover:!bg-[#253044]">
-            Contact support
-          </Button>
+          <Link to="/contact">
+            <Button className="!rounded-lg !bg-[#10131b] px-5 py-3 font-black !text-white hover:!bg-[#253044] whitespace-nowrap">
+              <HelpCircle size={15} /> Contact us
+            </Button>
+          </Link>
         </div>
       </section>
     </div>
