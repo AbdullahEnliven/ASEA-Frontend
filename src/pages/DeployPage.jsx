@@ -533,8 +533,16 @@ function GithubTab({ projectId }) {
       const username = res.data?.username || '';
       setConnected(isConnected);
       setGithubUser(username);
+      setRepoUrl(res.data?.url || null);
       if (isConnected && username) {
-        setConfig((prev) => ({ ...prev, owner: prev.owner || username }));
+        const repo = res.data?.repo || '';
+        const [repoOwner, repoName] = repo.includes('/') ? repo.split('/') : ['', ''];
+        setConfig((prev) => ({
+          ...prev,
+          owner: prev.owner || repoOwner || username,
+          repoName: prev.repoName || repoName || '',
+          branch: res.data?.branch || prev.branch,
+        }));
       }
     } catch {
       setConnected(false);

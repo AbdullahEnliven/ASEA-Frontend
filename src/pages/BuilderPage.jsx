@@ -340,6 +340,13 @@ function BuilderToolbar({ deployedUrl, setDeployedUrl }) {
           </div>
         </div>
       )}
+                <Rocket size={13} />
+                {deploying ? 'Deploying...' : 'Deploy now'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -350,6 +357,8 @@ const STATUS_CONFIG = {
   analyzing: { icon: '🧠', color: 'text-purple-400', bg: 'bg-purple-500/10', label: 'Analyzing' },
   planning: { icon: '📝', color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Planning' },
   writing: { icon: '✏️', color: 'text-green-400', bg: 'bg-green-500/10', label: 'Writing' },
+  repairing: { icon: '🔧', color: 'text-orange-400', bg: 'bg-orange-500/10', label: 'Repairing' },
+  queued: { icon: '⏳', color: 'text-slate-400', bg: 'bg-slate-500/10', label: 'Queued' },
   complete: { icon: '✅', color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Complete' },
   error: { icon: '❌', color: 'text-red-400', bg: 'bg-red-500/10', label: 'Error' },
 };
@@ -507,6 +516,7 @@ function ChatSidebar() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [agentSteps, setAgentSteps] = useState([]);
+  const [restoringMessageId, setRestoringMessageId] = useState(null);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const token = useAuthStore((s) => s.token);
@@ -518,26 +528,39 @@ function ChatSidebar() {
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }, []);
 
+  const normalizeChatMessage = useCallback((msg = {}) => {
+    const metadata = msg.metadata || {};
+    const role = msg.role === 'assistant' ? 'agent' : (msg.role || 'agent');
+    return {
+      id: msg.id || metadata.client_message_id || buildMessageId(),
+      server_id: msg.id || null,
+      client_message_id: metadata.client_message_id || msg.client_message_id || null,
+      role,
+      content: msg.content || msg.message || msg.reply || '',
+      files_modified: metadata.files_modified || msg.files_modified || [],
+      plan: metadata.plan || msg.plan || '',
+      steps: msg.steps,
+      checkpoint_id: metadata.checkpoint_id || msg.checkpoint_id || null,
+      commit_hash: metadata.commit_hash || msg.commit_hash || null,
+      checkpoint_message: metadata.checkpoint_message || msg.checkpoint_message || '',
+      github_push: metadata.github_push || msg.github_push || null,
+    };
+  }, [buildMessageId]);
+
   const loadChatHistory = useCallback(async () => {
     if (!activeProject?.id) return;
     setLoadingHistory(true);
     try {
       const res = await projectsService.getChatHistory(activeProject.id);
       if (!mountedRef.current) return;
-      const persisted = (res.data?.messages || []).map((msg) => ({
-        id: msg.id || buildMessageId(),
-        role: msg.role === 'assistant' ? 'agent' : (msg.role || 'agent'),
-        content: msg.content || '',
-        files_modified: msg.metadata?.files_modified || [],
-        plan: msg.metadata?.plan || '',
-      }));
+      const persisted = (res.data?.messages || []).map((msg) => normalizeChatMessage(msg));
       setMessages(persisted);
     } catch {
       if (mountedRef.current) setMessages([]);
     } finally {
       if (mountedRef.current) setLoadingHistory(false);
     }
-  }, [activeProject?.id, buildMessageId]);
+  }, [activeProject?.id, normalizeChatMessage]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -589,14 +612,11 @@ function ChatSidebar() {
     const handleAgentReply = (data) => {
        setIsTyping(false);
        const currentSteps = [...agentStepsRef.current];
-       setMessages(prev => [...prev, {
-         id: data.id || buildMessageId(),
-         role: data.role === 'assistant' ? 'agent' : (data.role || 'agent'),
+       setMessages(prev => [...prev, normalizeChatMessage({
+         ...data,
          content: data.message || data.content || data.reply || 'Agent replied.',
-         files_modified: data.files_modified || [],
-         plan: data.plan || '',
-         steps: currentSteps.length > 0 ? currentSteps : undefined
-       }]);
+         steps: currentSteps.length > 0 ? currentSteps : undefined,
+       })]);
        // Always sync with persisted history after receiving a reply.
        setTimeout(() => {
          if (mountedRef.current) loadChatHistory();
@@ -609,8 +629,43 @@ function ChatSidebar() {
     // Backward compatibility for alternate server event naming.
     socket.on('agent_response', handleAgentReply);
 
-    socket.on('code_updated', () => {
+    socket.on('chat_message_saved', (data) => {
+       const normalized = normalizeChatMessage({
+         ...data,
+         content: data.message || data.content || '',
+       });
+       setMessages((prev) => {
+         const matchIndex = prev.findIndex((msg) => (
+           (normalized.client_message_id && msg.id === normalized.client_message_id) ||
+           (normalized.client_message_id && msg.client_message_id === normalized.client_message_id) ||
+           (normalized.server_id && msg.server_id === normalized.server_id)
+         ));
+
+         if (matchIndex === -1) return [...prev, normalized];
+
+         const next = [...prev];
+         next[matchIndex] = { ...next[matchIndex], ...normalized };
+         return next;
+       });
+    });
+
+    socket.on('code_updated', (data) => {
+       if (data?.legacy_refresh_notice) {
+         toast.success('Agent updated the code.');
+         window.dispatchEvent(new CustomEvent('asea:project-code-updated', { detail: { projectId: activeProject.id } }));
+         return;
+       }
+       const push = data?.github_push;
+       if (push?.pushed) {
+         toast.success('Agent updated the code and pushed it to GitHub.');
+       } else {
+         toast.success('Agent updated the code.');
+         if (push?.error) toast.error(`GitHub push failed: ${push.error}`);
+       }
+       window.dispatchEvent(new CustomEvent('asea:project-code-updated', { detail: { projectId: activeProject.id } }));
+       if (!data) {
        toast.success("Agent modified the UI! Vite should auto-refresh.", { icon: "✨" });
+       }
     });
 
     socketRef.current = socket;
@@ -619,7 +674,7 @@ function ChatSidebar() {
        socket.emit('leave_project', { project_id: activeProject.id });
        socket.disconnect();
     };
-  }, [activeProject?.id, token]);
+  }, [activeProject?.id, token, normalizeChatMessage, loadChatHistory]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -632,12 +687,17 @@ function ChatSidebar() {
   const handleSend = async () => {
     if (!input.trim() || !activeProject?.id) return;
     
-    const userMsg = { id: buildMessageId(), role: 'user', content: input };
+    const userMsg = { id: buildMessageId(), role: 'user', content: input, client_message_id: null };
+    userMsg.client_message_id = userMsg.id;
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     
     if (socketRef.current) {
-        socketRef.current.emit('chat_message', { project_id: activeProject.id, message: userMsg.content });
+        socketRef.current.emit('chat_message', {
+          project_id: activeProject.id,
+          message: userMsg.content,
+          client_message_id: userMsg.client_message_id,
+        });
     } else {
         setIsTyping(true);
         setTimeout(() => {
@@ -655,6 +715,29 @@ function ChatSidebar() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleRestoreCheckpoint = async (msg) => {
+    if (!activeProject?.id || !msg?.checkpoint_id || restoringMessageId) return;
+    const confirmed = window.confirm('Restore the project code to this message version?');
+    if (!confirmed) return;
+
+    setRestoringMessageId(msg.id);
+    try {
+      const res = await projectsService.restoreCheckpoint(activeProject.id, msg.checkpoint_id);
+      const push = res.data?.github_push;
+      if (push?.pushed) {
+        toast.success('Restored and pushed to GitHub.');
+      } else {
+        toast.success('Restored project code.');
+        if (push?.error) toast.error(`GitHub push failed: ${push.error}`);
+      }
+      window.dispatchEvent(new CustomEvent('asea:project-code-updated', { detail: { projectId: activeProject.id } }));
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Restore failed');
+    } finally {
+      setRestoringMessageId(null);
     }
   };
 
@@ -733,6 +816,25 @@ function ChatSidebar() {
                 {msg.content}
                 <FilesModifiedBadge files={msg.files_modified} />
               </div>
+              {msg.checkpoint_id && (
+                <button
+                  type="button"
+                  onClick={() => handleRestoreCheckpoint(msg)}
+                  disabled={Boolean(restoringMessageId)}
+                  title={msg.commit_hash ? `Restore to commit ${msg.commit_hash.slice(0, 7)}` : 'Restore code to this version'}
+                  className={`mt-1 flex h-7 w-7 items-center justify-center rounded-lg border text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    msg.role === 'user'
+                      ? 'border-[#2a3040] bg-[#10131b] text-[#f6c453] hover:bg-[#20283a]'
+                      : 'border-[#d8d0c0] bg-white text-[#007f75] hover:bg-[#e8f7f3]'
+                  }`}
+                >
+                  {restoringMessageId === msg.id ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Undo2 size={13} />
+                  )}
+                </button>
+              )}
             </motion.div>
           ))}
 
@@ -945,6 +1047,16 @@ function LivePreview({ deployedUrl }) {
   }, []);
 
   useEffect(() => {
+    const handleCodeUpdate = (event) => {
+      if (event.detail?.projectId && event.detail.projectId !== activeProject?.id) return;
+      loadPreview();
+    };
+
+    window.addEventListener('asea:project-code-updated', handleCodeUpdate);
+    return () => window.removeEventListener('asea:project-code-updated', handleCodeUpdate);
+  }, [activeProject?.id, loadPreview]);
+
+  useEffect(() => {
     const handleMessage = (e) => {
       if (e.data?.type === 'asea:click') {
         const iframeRect = iframeRef.current?.getBoundingClientRect();
@@ -1150,6 +1262,19 @@ function CodeViewerPane() {
   useEffect(() => {
     loadFiles();
   }, [loadFiles]);
+
+  useEffect(() => {
+    const handleCodeUpdate = (event) => {
+      if (event.detail?.projectId && event.detail.projectId !== activeProject?.id) return;
+      loadFiles();
+      if (activeFilePathRef.current) {
+        loadFileContent(activeFilePathRef.current);
+      }
+    };
+
+    window.addEventListener('asea:project-code-updated', handleCodeUpdate);
+    return () => window.removeEventListener('asea:project-code-updated', handleCodeUpdate);
+  }, [activeProject?.id, loadFiles, loadFileContent]);
 
   const handleSave = useCallback(async () => {
     if (!activeProject?.id || !activeFilePath || !dirty) return;
