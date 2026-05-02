@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { motion as Motion } from 'framer-motion';
-import { ArrowRight, LifeBuoy, Mail, MessageSquare, Send, Sparkles, Timer } from 'lucide-react';
+import { ArrowRight, LifeBuoy, Mail, MessageSquare, Send, Sparkles, Timer, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import api from '@/services/api';
 
 const contactRoutes = [
   {
@@ -29,12 +32,48 @@ const contactRoutes = [
 ];
 
 const fields = [
-  { label: 'Name', placeholder: 'Jane Doe', type: 'text' },
-  { label: 'Work email', placeholder: 'jane@company.com', type: 'email' },
-  { label: 'Company', placeholder: 'Your team or store', type: 'text' },
+  { id: 'name', label: 'Name', placeholder: 'Jane Doe', type: 'text' },
+  { id: 'email', label: 'Work email', placeholder: 'jane@company.com', type: 'email' },
+  { id: 'company', label: 'Company', placeholder: 'Your team or store', type: 'text' },
 ];
 
 export default function ContactPage() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    company: '',
+    message: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.email || !formData.message) {
+      toast.error('Please fill in all required fields.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await api.post('/contact', {
+        name: formData.name,
+        email: formData.email,
+        subject: `ASEA Contact: ${formData.company || 'No Company Provided'}`,
+        message: formData.message,
+      });
+      toast.success('Your message has been sent successfully. We will be in touch soon!');
+      setFormData({ name: '', email: '', company: '', message: '' });
+    } catch (error) {
+      toast.error('Failed to send message. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   return (
     <main className="bg-[#f6f1e8] text-[#10131b]">
       <section className="mx-auto max-w-7xl px-5 pb-16 pt-32 sm:px-8 lg:pb-24">
@@ -96,7 +135,7 @@ export default function ContactPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.12 }}
           className="rounded-lg border border-[#d8d0c0] bg-[#fffaf0] p-5 shadow-[0_24px_70px_rgba(16,19,27,0.12)] sm:p-8"
-          onSubmit={(event) => event.preventDefault()}
+          onSubmit={handleSubmit}
         >
           <div className="mb-8 flex items-start justify-between gap-6">
             <div>
@@ -110,13 +149,17 @@ export default function ContactPage() {
 
           <div className="grid gap-5 sm:grid-cols-2">
             {fields.map((field, index) => (
-              <label key={field.label} className={index === 2 ? 'sm:col-span-2' : ''}>
+              <label key={field.id} className={index === 2 ? 'sm:col-span-2' : ''}>
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[#5d6472]">
-                  {field.label}
+                  {field.label} {index !== 2 && <span className="text-[#ba4d41]">*</span>}
                 </span>
                 <input
                   type={field.type}
+                  name={field.id}
+                  value={formData[field.id]}
+                  onChange={handleChange}
                   placeholder={field.placeholder}
+                  required={index !== 2}
                   className="w-full rounded-lg border border-[#d8d0c0] bg-white px-4 py-3 text-sm font-semibold text-[#10131b] outline-none transition placeholder:text-[#a9a094] focus:border-[#007f75] focus:ring-4 focus:ring-[#007f75]/10"
                 />
               </label>
@@ -125,17 +168,29 @@ export default function ContactPage() {
 
           <label className="mt-5 block">
             <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[#5d6472]">
-              What are you building?
+              What are you building? <span className="text-[#ba4d41]">*</span>
             </span>
             <textarea
+              name="message"
+              value={formData.message}
+              onChange={handleChange}
               rows={6}
+              required
               placeholder="Share the store type, timeline, team size, and anything you need ASEA to support."
               className="w-full resize-none rounded-lg border border-[#d8d0c0] bg-white px-4 py-3 text-sm font-semibold text-[#10131b] outline-none transition placeholder:text-[#a9a094] focus:border-[#007f75] focus:ring-4 focus:ring-[#007f75]/10"
             />
           </label>
 
-          <button className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#10131b] px-5 py-4 text-sm font-black text-white transition hover:bg-[#007f75]">
-            Send message <Send className="h-4 w-4" />
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#10131b] px-5 py-4 text-sm font-black text-white transition hover:bg-[#007f75] disabled:opacity-70"
+          >
+            {isSubmitting ? (
+              <>Sending <Loader2 className="h-4 w-4 animate-spin" /></>
+            ) : (
+              <>Send message <Send className="h-4 w-4" /></>
+            )}
           </button>
         </Motion.form>
       </section>
