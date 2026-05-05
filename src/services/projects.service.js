@@ -24,6 +24,7 @@ export const projectsService = {
   startGeneration: (id) =>
     api.post(`/projects/${encodeURIComponent(id)}/generate`),
 
+  // Legacy: kept for backward-compat but no longer the primary preview method
   getPreview: (id, page) =>
     api.get(`/projects/${encodeURIComponent(id)}/preview/${encodeURIComponent(page)}`),
 
@@ -55,7 +56,7 @@ export const projectsService = {
 
   supabaseTest: (id, credentials) =>
     api.post(`/projects/${encodeURIComponent(id)}/integrations/supabase/test`, credentials),
-  
+
   deploy: (id, config = {}) =>
     api.post(`/projects/${encodeURIComponent(id)}/integrations/deploy`, {
       target: config.target || 'production',
@@ -67,4 +68,20 @@ export const projectsService = {
       target: 'preview',
       subdomain: config.subdomain,
     }),
+
+  // ── Vercel-based live preview (Railway-compatible — no local ports) ──────────
+  // 1. Poll this to get current state: { status, url, message }
+  getPreviewStatus: (id) =>
+    api.get(`/projects/${encodeURIComponent(id)}/preview-status`),
+
+  // 2. Call this to kick off a deploy (non-blocking); then poll getPreviewStatus
+  triggerPreview: (id) =>
+    api.post(`/projects/${encodeURIComponent(id)}/preview/trigger`),
+
+  // 3. Backend proxy URL — iframe loads this instead of Vercel directly.
+  //    The proxy strips X-Frame-Options so the site embeds without "refused to connect".
+  getPreviewProxyUrl: (id) => {
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
+    return `${base}/projects/${encodeURIComponent(id)}/preview-proxy`;
+  },
 };

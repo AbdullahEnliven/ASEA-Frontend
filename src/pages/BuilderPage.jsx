@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import {
   Monitor,
@@ -878,109 +878,158 @@ function InlineEditor({ activeEdit, onClose, onSave }) {
   );
 }
 
-// --- Live Preview -------------------------------------
-function LivePreview({ deployedUrl }) {
-  const { deviceMode, activePage, editMode } = useBuilderStore();
+// --- Live Preview (Vercel-based, Railway-compatible) ------------------
+
+/** Strip ANSI terminal escape sequences (e.g. \u001b[2K) from log lines */
+const stripAnsi = (str) => str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').trim();
+
+/**
+ * Return a clean display URL for the browser address bar.
+ * - Prefer the production URL (e.g. hydrabox.vercel.app)
+ * - Otherwise strip the deployment-hash + team-slug from the preview URL
+ *   e.g. hydrabox-dmc0opquj-hudjgnr-6989s-projects.vercel.app → hydrabox (preview)
+ */
+const getDisplayUrl = (previewUrl, productionUrl) => {
+  if (productionUrl) return productionUrl;
+  if (!previewUrl) return '';
+  try {
+    const hostname = new URL(previewUrl).hostname; // e.g. hydrabox-dmc0opquj-hudjgnr-6989s-projects.vercel.app
+    if (!hostname.endsWith('.vercel.app')) return hostname;
+    const withoutSuffix = hostname.replace('.vercel.app', ''); // hydrabox-dmc0opquj-hudjgnr-6989s-projects
+    const parts = withoutSuffix.split('-');
+    // Vercel hashes are typically 9 random lowercase alphanumeric chars
+    const hashIdx = parts.findIndex((p, i) => i > 0 && /^[a-z0-9]{9,}$/.test(p));
+    const projectName = hashIdx > 0 ? parts.slice(0, hashIdx).join('-') : parts[0];
+    return `${projectName}.vercel.app (preview)`;
+  } catch {
+    return previewUrl;
+  }
+};
+
+function LivePreview() {
+  const { deviceMode, editMode } = useBuilderStore();
   const activeProject = useProjectsStore((s) => s.activeProject);
-  const iframeRef = useRef(null);
-  const [html, setHtml] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const pollRef = useRef(null);
+  const socketRef = useRef(null);
+  const token = useAuthStore((s) => s.token);
+
+  // preview state: idle | deploying | ready | error
+  const [previewStatus, setPreviewStatus] = useState('idle');
+  const [previewUrl, setPreviewUrl] = useState(null);       // actual Vercel preview URL (for external link)
+  const [productionUrl, setProductionUrl] = useState(null); // production URL if deployed
+  const [proxyUrl, setProxyUrl] = useState(null);           // backend proxy URL (iframe src)
+  const [previewMsg, setPreviewMsg] = useState('');
+  const [deployLog, setDeployLog] = useState([]);
   const [activeEdit, setActiveEdit] = useState(null);
-  const debounceRef = useRef(null);
-  const refreshRef = useRef(null);
-  const startupRetryRef = useRef(null);
-  const startupAttemptsRef = useRef(0);
-  const MAX_STARTUP_RETRIES = 4;
-  const hasDeployedUrl = Boolean(deployedUrl);
+  const deployLogRef = useRef(null);
+  const mountedRef = useRef(false);
 
-  const getEditableHtml = useCallback(
-    (rawHtml) => {
-      if (!editMode) return rawHtml;
-      const script = `<script>
-        document.addEventListener('click', function(e) {
-          var t = e.target.closest('[data-editable-id]');
-          if (!t) { parent.postMessage({ type:'asea:deselect' }, '*'); return; }
-          e.preventDefault();
-          var r = t.getBoundingClientRect();
-          parent.postMessage({ type:'asea:click', editableId:t.dataset.editableId, text:t.innerHTML, rect:{top:r.top, left:r.left, width:r.width, height:r.height} }, '*');
-        });
-        document.addEventListener('mouseover', function(e) {
-          var t = e.target.closest('[data-editable-id]');
-          if (t) { t.style.outline='2px dashed #3b82f6'; t.style.cursor='pointer'; }
-        });
-        document.addEventListener('mouseout', function(e) {
-          var t = e.target.closest('[data-editable-id]');
-          if (t) { t.style.outline=''; t.style.cursor=''; }
-        });
-      </script>`;
-      return rawHtml.replace(/<\/body>/i, script + '</body>') || rawHtml + script;
-    },
-    [editMode]
-  );
+  // Auto-scroll deploy log
+  useEffect(() => {
+    if (deployLogRef.current) {
+      deployLogRef.current.scrollTop = deployLogRef.current.scrollHeight;
+    }
+  }, [deployLog]);
 
-  const loadPreview = useCallback(() => {
+  const applyStatus = useCallback((data) => {
+    if (!mountedRef.current) return;
+    const status = data.status || 'idle';
+    setPreviewStatus(status);
+    setPreviewUrl(data.url || null);
+    setProductionUrl(data.production_url || null);
+    // Build proxy URL from project id when ready
+    if (status === 'ready' && data.url) {
+      setProxyUrl(projectsService.getPreviewProxyUrl(activeProject?.id));
+    } else if (status !== 'ready') {
+      setProxyUrl(null);
+    }
+    setPreviewMsg(data.message || '');
+    if (status === 'deploying' && data.message) {
+      const clean = stripAnsi(data.message);
+      if (clean) setDeployLog((prev) => [...prev.slice(-200), clean]);
+    }
+    if (status === 'ready' || status === 'error') {
+      setDeployLog([]);
+    }
+  }, [activeProject?.id]);
+
+  // Initial status check
+  const fetchStatus = useCallback(async () => {
     if (!activeProject?.id) return;
-    clearTimeout(startupRetryRef.current);
-    setLoading(true);
-    projectsService.getPreview(activeProject.id, activePage)
-      .then((res) => {
-        const raw = typeof res.data === 'string' ? res.data : res.data.html || '';
-        if (raw.includes('Preview is still starting')) {
-          if (startupAttemptsRef.current < MAX_STARTUP_RETRIES) {
-            startupAttemptsRef.current += 1;
-            startupRetryRef.current = setTimeout(() => loadPreview(), 2500);
-            setHtml(raw);
-            setError(null);
-            return;
-          }
-
-          if (hasDeployedUrl) {
-            setHtml(`<style>body{margin:0;padding:0;overflow:hidden}iframe{width:100vw;height:100vh;border:none}</style><iframe src="${deployedUrl}"></iframe>`);
-            setError('Local preview did not start. Showing deployed site instead.');
-          } else {
-            setHtml(raw);
-            setError('Local preview is taking too long to start. Try refreshing preview after checking the project dev server dependencies.');
-          }
-          return;
-        }
-
-        startupAttemptsRef.current = 0;
-        setError(null);
-        setHtml(raw);
-      })
-      .catch(() => {
-        // mock fallback for styling purposes if backend fails
-        setHtml(`<div style="font-family:sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#333;background:#fafafa;">
-          <h1 style="font-size:3rem;margin-bottom:1rem;color:#111;">System 01</h1>
-          <p>Mocked preview fallback: Backend generated store.</p>
-        </div>`);
-        setError('Failed to load preview endpoint.');
-      })
-      .finally(() => setLoading(false));
-  }, [activeProject?.id, activePage, hasDeployedUrl, deployedUrl]);
+    try {
+      const res = await projectsService.getPreviewStatus(activeProject.id);
+      applyStatus(res.data);
+    } catch {
+      // silently ignore
+    }
+  }, [activeProject?.id, applyStatus]);
 
   useEffect(() => {
-    startupAttemptsRef.current = 0;
-    loadPreview();
-  }, [loadPreview]);
-
-  useEffect(() => {
+    mountedRef.current = true;
+    setPreviewStatus('idle');
+    setPreviewUrl(null);
+    setProductionUrl(null);
+    setProxyUrl(null);
+    setPreviewMsg('');
+    setDeployLog([]);
+    fetchStatus();
     return () => {
-      clearTimeout(startupRetryRef.current);
+      mountedRef.current = false;
+      clearInterval(pollRef.current);
     };
-  }, []);
+  }, [activeProject?.id, fetchStatus]);
 
+  // Poll while deploying
   useEffect(() => {
-    const handleCodeUpdate = (event) => {
-      if (event.detail?.projectId && event.detail.projectId !== activeProject?.id) return;
-      loadPreview();
+    clearInterval(pollRef.current);
+    if (previewStatus === 'deploying') {
+      pollRef.current = setInterval(fetchStatus, 4000);
+    }
+    return () => clearInterval(pollRef.current);
+  }, [previewStatus, fetchStatus]);
+
+  // Socket.IO — listen for real-time preview_status events
+  useEffect(() => {
+    if (!activeProject?.id) return;
+    const socket = io(
+      import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8000',
+      { transports: ['websocket'], auth: token ? { token } : undefined }
+    );
+    socket.on('connect', () => {
+      socket.emit('join_project', { project_id: activeProject.id });
+    });
+    socket.on('preview_status', (data) => applyStatus(data));
+    // When agent changes code → mark preview as stale
+    socket.on('code_updated', () => {
+      if (mountedRef.current) {
+        setPreviewStatus((s) => (s === 'ready' ? 'idle' : s));
+        setPreviewMsg('Code updated — rebuild preview to see changes');
+        setPreviewUrl(null);
+      }
+    });
+    socketRef.current = socket;
+    return () => {
+      socket.emit('leave_project', { project_id: activeProject.id });
+      socket.disconnect();
+      socketRef.current = null;
     };
+  }, [activeProject?.id, token, applyStatus]);
 
-    window.addEventListener('asea:project-code-updated', handleCodeUpdate);
-    return () => window.removeEventListener('asea:project-code-updated', handleCodeUpdate);
-  }, [activeProject?.id, loadPreview]);
+  const handleTriggerPreview = useCallback(async () => {
+    if (!activeProject?.id) return;
+    setPreviewStatus('deploying');
+    setPreviewMsg('Requesting Vercel preview deploy…');
+    setDeployLog(['Starting Vercel preview deploy…']);
+    try {
+      const res = await projectsService.triggerPreview(activeProject.id);
+      applyStatus(res.data);
+    } catch (err) {
+      setPreviewStatus('error');
+      setPreviewMsg(err.response?.data?.detail || 'Failed to trigger preview');
+    }
+  }, [activeProject?.id, applyStatus]);
 
+  // Edit-mode message listener
   useEffect(() => {
     const handleMessage = (e) => {
       if (e.data?.type === 'asea:click') {
@@ -1005,104 +1054,136 @@ function LivePreview({ deployedUrl }) {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const saveEdit = useCallback(
-    (editableId, newHtml) => {
-      if (!activeProject?.id) return;
-      clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(async () => {
-        try {
-          await projectsService.updateFile(activeProject.id, editableId, newHtml);
-          clearTimeout(refreshRef.current);
-          refreshRef.current = setTimeout(() => loadPreview(), 500);
-        } catch {
-          toast.error('Failed to save change');
-        }
-      }, 300);
-    },
-    [activeProject?.id, loadPreview]
-  );
+  const isReady = previewStatus === 'ready' && previewUrl;
+  const isDeploying = previewStatus === 'deploying';
+  const isError = previewStatus === 'error';
+  const displayUrl = getDisplayUrl(previewUrl, productionUrl);
+  // The proxy URL needs the bearer token so the backend can authenticate
+  const proxyIframeSrc = proxyUrl
+    ? `${proxyUrl}?token=${encodeURIComponent(token || '')}`
+    : null;
 
   return (
     <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#f6f1e8] p-4 lg:p-6">
-      {/* Browser Bar Mock Frame */}
-      <div 
+      <div
         className="relative flex flex-col overflow-hidden rounded-2xl border border-[#d8d0c0] bg-white shadow-[0_24px_70px_rgba(16,19,27,0.18)] transition-all duration-300"
-        style={{
-            maxWidth: DEVICE_WIDTHS[deviceMode] || '100%',
-            width: '100%',
-            height: '100%',
-            maxHeight: '100%'
-        }}
+        style={{ maxWidth: DEVICE_WIDTHS[deviceMode] || '100%', width: '100%', height: '100%', maxHeight: '100%' }}
       >
+        {/* Browser bar */}
         <div className="flex h-12 shrink-0 items-center gap-3 border-b border-[#d8d0c0] bg-[#fffaf0] px-4">
-           <div className="flex max-w-[72px] flex-1 gap-1.5">
-             <div className="h-2.5 w-2.5 rounded-full bg-[#f06f63]"></div>
-             <div className="h-2.5 w-2.5 rounded-full bg-[#f6c453]"></div>
-             <div className="h-2.5 w-2.5 rounded-full bg-[#007f75]"></div>
-           </div>
-           
-           <div className="mx-auto flex max-w-md flex-1 items-center justify-center gap-2 rounded-lg border border-[#d8d0c0] bg-white px-3 py-1.5 font-mono text-[11px] font-semibold text-[#5d6472]">
-             <span className="truncate" title={hasDeployedUrl ? deployedUrl : 'Not deployed yet'}>
-               {hasDeployedUrl ? deployedUrl : 'Not deployed yet'}
-             </span>
-             {hasDeployedUrl ? (
-               <a
-                 href={deployedUrl}
-                 target="_blank"
-                 rel="noreferrer"
-                 className="text-[#8b8174] hover:text-[#10131b]"
-                 title="Open deployed URL"
-               >
-                 <ExternalLink size={12} />
-               </a>
-             ) : null}
-           </div>
-           
-           <div className="flex max-w-[72px] flex-1 justify-end">
-               <button
-                 onClick={loadPreview}
-                 disabled={loading}
-                 className="rounded-lg border border-transparent p-1.5 transition-colors hover:border-[#d8d0c0] hover:bg-white disabled:opacity-50"
-                 title="Reload preview"
-               >
-                 <RefreshCw size={14} className={`text-[#8b8174] ${loading ? 'animate-spin' : ''}`} />
-               </button>
-           </div>
+          <div className="flex max-w-[72px] flex-1 gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#f06f63]" />
+            <div className="h-2.5 w-2.5 rounded-full bg-[#f6c453]" />
+            <div className="h-2.5 w-2.5 rounded-full bg-[#007f75]" />
+          </div>
+
+          {/* Clean URL bar */}
+          <div className="mx-auto flex max-w-md flex-1 items-center gap-2 overflow-hidden rounded-lg border border-[#d8d0c0] bg-white px-3 py-1.5">
+            {isReady && <div className="h-2 w-2 shrink-0 rounded-full bg-[#007f75]" title="Live on Vercel" />}
+            {isDeploying && <Loader2 size={10} className="shrink-0 animate-spin text-[#f6c453]" />}
+            <span className="flex-1 truncate font-mono text-[11px] font-semibold text-[#5d6472]" title={previewUrl || ''}>
+              {isDeploying ? 'Deploying to Vercel…' : (displayUrl || 'Preview not built yet')}
+            </span>
+            {previewUrl && (
+              <a href={previewUrl} target="_blank" rel="noreferrer" className="shrink-0 text-[#8b8174] transition-colors hover:text-[#007f75]" title="Open in new tab">
+                <ExternalLink size={12} />
+              </a>
+            )}
+          </div>
+
+          {/* Refresh / rebuild button */}
+          <div className="flex max-w-[72px] flex-1 justify-end">
+            <button
+              onClick={handleTriggerPreview}
+              disabled={isDeploying}
+              className="rounded-lg border border-transparent p-1.5 transition-colors hover:border-[#d8d0c0] hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+              title={isReady ? 'Rebuild preview' : 'Build Vercel preview'}
+            >
+              <RefreshCw size={14} className={`text-[#8b8174] ${isDeploying ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
-        
-        {loading ? (
-          <div className="flex flex-1 flex-col items-center justify-center overflow-hidden rounded-b-xl border-x border-b border-transparent bg-white">
-            <Loader2 size={24} className="mb-4 animate-spin text-[#007f75]" />
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#8b8174]">Loading preview</p>
+
+        {/* Content */}
+        {isReady && proxyIframeSrc ? (
+          // ── Vercel preview via backend proxy (no X-Frame-Options block) ──
+          <div className="relative min-h-0 flex-1">
+            <iframe
+              src={proxyIframeSrc}
+              title="Store Preview"
+              className="absolute inset-0 h-full w-full border-0"
+              allow="fullscreen"
+            />
+          </div>
+        ) : isDeploying ? (
+          // ── Deploying state ───────────────────────────────────────────
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 overflow-hidden p-6">
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative flex h-14 w-14 items-center justify-center">
+                <div className="absolute inset-0 animate-spin rounded-full border-4 border-[#007f75]/20 border-t-[#007f75]" />
+                <Rocket size={22} className="text-[#007f75]" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-black text-[#10131b]">Deploying to Vercel</p>
+                <p className="mt-1 text-xs text-[#8b8174]">~1–2 min first build · subsequent builds use cache</p>
+              </div>
+            </div>
+            {deployLog.length > 0 && (
+              <div
+                ref={deployLogRef}
+                className="w-full max-w-xl max-h-56 overflow-y-auto rounded-xl border border-[#d8d0c0] bg-[#0f172a] px-4 py-3 font-mono text-[10px] text-[#94a3b8] shadow-inner"
+              >
+                {deployLog.map((line, i) => (
+                  <div key={i} className="leading-relaxed">{line}</div>
+                ))}
+                <div className="mt-1 animate-pulse text-[#007f75]">▌</div>
+              </div>
+            )}
+          </div>
+        ) : isError ? (
+          // ── Error state ───────────────────────────────────────────────
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-red-200 bg-red-50">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <div>
+              <p className="text-sm font-black text-[#10131b]">Preview deploy failed</p>
+              <p className="mt-1 max-w-xs text-xs leading-relaxed text-[#8b8174]">{previewMsg}</p>
+            </div>
+            <button
+              onClick={handleTriggerPreview}
+              className="flex items-center gap-2 rounded-xl bg-[#10131b] px-4 py-2 text-xs font-black text-white transition-colors hover:bg-[#007f75]"
+            >
+              <RefreshCw size={13} /> Try Again
+            </button>
           </div>
         ) : (
-          <div className="relative flex h-full min-h-0 w-full flex-1 justify-center bg-white p-0">
-             {error ? (
-               <div className="absolute left-3 right-3 top-3 z-10 rounded-lg border border-[#c8931f]/40 bg-[#fff2cb] px-3 py-2 text-xs font-semibold text-[#8a5d00]">
-                 {error}
-               </div>
-             ) : null}
-             <iframe
-                ref={iframeRef}
-                srcDoc={getEditableHtml(html)}
-                title="Store Preview"
-                className="w-full h-full border-0 absolute inset-0"
-                sandbox="allow-scripts allow-same-origin"
-              />
+          // ── Idle / not built yet ──────────────────────────────────────
+          <div className="flex flex-1 flex-col items-center justify-center gap-5 p-6 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#d8d0c0] bg-[#f6f1e8] shadow-inner">
+              <Rocket size={28} className="text-[#007f75]" />
+            </div>
+            <div>
+              <p className="text-base font-black text-[#10131b]">Preview your store</p>
+              <p className="mt-2 max-w-xs text-xs leading-relaxed text-[#8b8174]">
+                {previewMsg || 'Build a Vercel preview — same deployment doubles as your production URL.'}
+              </p>
+            </div>
+            <button
+              onClick={handleTriggerPreview}
+              id="trigger-preview-btn"
+              className="flex items-center gap-2 rounded-xl bg-[#10131b] px-5 py-2.5 text-sm font-black text-white shadow-[0_8px_24px_rgba(16,19,27,0.2)] transition-all hover:bg-[#007f75] hover:shadow-[0_8px_24px_rgba(0,127,117,0.3)] active:scale-95"
+            >
+              <Rocket size={15} /> Build Preview on Vercel
+            </button>
+            <p className="text-[10px] text-[#a9a094]">Powered by Vercel · Works on Railway · ~1 min first build</p>
           </div>
         )}
       </div>
-
-      {editMode && activeEdit && (
-        <InlineEditor
-          activeEdit={activeEdit}
-          onClose={() => setActiveEdit(null)}
-          onSave={saveEdit}
-        />
-      )}
     </div>
   );
 }
+
 
 const RotateCw = ({size, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinelinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
 
@@ -1435,7 +1516,7 @@ export default function BuilderPage() {
       <BuilderToolbar setDeployedUrl={setDeployedUrl} />
       <div className="flex h-[calc(100vh-64px)] flex-1 overflow-hidden">
         <ChatSidebar />
-        {viewMode === 'preview' ? <LivePreview deployedUrl={deployedUrl} /> : <CodeViewerPane />}
+        {viewMode === 'preview' ? <LivePreview /> : <CodeViewerPane />}
       </div>
     </div>
   );
