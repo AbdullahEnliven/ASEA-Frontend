@@ -8,6 +8,7 @@ import {
   ChevronDown,
   CircleDollarSign,
   DatabaseZap,
+  FlaskConical,
   GitBranch,
   Play,
   ShieldCheck,
@@ -419,8 +420,8 @@ export default function LandingPage() {
             </p>
           </FadeUp>
 
-          <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
-            <FadeUp>
+          <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-stretch">
+            <FadeUp className="h-full">
               <article className="flex h-full flex-col justify-between rounded-lg border border-[#d8d0c0] bg-[#f7f2e8] p-8 shadow-[0_18px_55px_rgba(22,24,31,0.07)] lg:p-10">
                 <div>
                   <div className="mb-12 flex items-center justify-between gap-4">
@@ -460,11 +461,11 @@ export default function LandingPage() {
               </article>
             </FadeUp>
 
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid content-start gap-6 sm:grid-cols-2">
               {outputCards.map((card, index) => (
                 <FadeUp key={card.title} delay={index * 0.06}>
-                  <article className="flex min-h-[250px] flex-col rounded-lg border border-[#d8d0c0] bg-white p-8 shadow-[0_18px_55px_rgba(22,24,31,0.06)] transition hover:-translate-y-1 hover:border-[#10131b]">
-                    <div className={`mb-10 flex h-12 w-12 items-center justify-center rounded-lg ${card.tone}`}>
+                  <article className="flex flex-col rounded-lg border border-[#d8d0c0] bg-white p-8 shadow-[0_18px_55px_rgba(22,24,31,0.06)] transition hover:-translate-y-1 hover:border-[#10131b]">
+                    <div className={`mb-8 flex h-12 w-12 items-center justify-center rounded-lg ${card.tone}`}>
                       {card.glyph}
                     </div>
                     <h3 className="text-xl font-black tracking-tight text-[#10131b]">{card.title}</h3>
@@ -498,59 +499,78 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <FadeUp className="mb-14 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
             <div className="max-w-2xl">
-              <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-[#f2b84b]">Production pricing</p>
-              <h2 className="text-4xl font-black tracking-tight sm:text-5xl">Start lean, scale when the launches get serious.</h2>
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#f6c453]/40 bg-[#f6c453]/15 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-[#f6c453]">
+                <FlaskConical className="h-3.5 w-3.5" />
+                Beta Access — No Payment Required
+              </div>
+              <h2 className="text-4xl font-black tracking-tight sm:text-5xl">Everything free, while we're in beta.</h2>
             </div>
             <Link
               to="/pricing"
               className="inline-flex w-fit items-center justify-center gap-2 rounded-lg border border-white/15 px-5 py-3 text-sm font-black text-white transition hover:bg-white hover:text-[#10131b]"
             >
-              Compare plans
+              See pricing details
               <CircleDollarSign className="h-4 w-4" />
             </Link>
           </FadeUp>
 
-          <div className="grid gap-5 lg:grid-cols-3">
-            {plans.map((plan, index) => (
-              <FadeUp key={plan.name} delay={index * 0.08}>
-                <article className={`h-full rounded-lg border p-6 ${plan.featured ? 'border-[#f2b84b] bg-[#fffaf0] text-[#10131b]' : 'border-white/10 bg-white/5 text-white'}`}>
-                  <div className="mb-8 flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-2xl font-black">{plan.name}</p>
-                      <p className={`mt-2 text-sm leading-6 ${plan.featured ? 'text-[#626a78]' : 'text-white/60'}`}>{plan.caption}</p>
-                    </div>
-                    {plan.featured && (
-                      <span className="rounded-md bg-[#f2b84b] px-2 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#10131b]">
-                        Best fit
-                      </span>
-                    )}
-                  </div>
+          {/* Single beta plan card */}
+          <FadeUp>
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 shadow-[0_24px_60px_rgba(0,0,0,0.3)] sm:p-10 lg:flex lg:items-center lg:gap-16">
+              {/* Glow */}
+              <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#007f75]/20 blur-[80px]" />
+              <div className="pointer-events-none absolute -bottom-12 -left-12 h-48 w-48 rounded-full bg-[#f6c453]/10 blur-[60px]" />
 
-                  <div className="mb-8 flex items-end gap-1">
-                    <span className="text-5xl font-black tracking-tight">{plan.price}</span>
-                    <span className={`pb-2 text-sm font-bold ${plan.featured ? 'text-[#626a78]' : 'text-white/45'}`}>/mo</span>
+              {/* Price block */}
+              <div className="relative mb-8 shrink-0 lg:mb-0 lg:w-64">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-white/40">Beta plan</p>
+                <p className="mt-2 text-7xl font-black leading-none tracking-tight text-white">Free</p>
+                <p className="mt-3 text-sm font-bold text-white/50">No credit card. No billing. Ever — for now.</p>
+                <div className="mt-6">
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-white/35">Project limit</p>
+                  <div className="flex items-end gap-2">
+                    <span className="text-4xl font-black leading-none text-white">5</span>
+                    <span className="mb-1 text-sm font-bold text-white/50">projects</span>
                   </div>
-
-                  <ul className="mb-8 space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-3 text-sm font-bold">
-                        <Check className={`h-4 w-4 ${plan.featured ? 'text-[#0f766e]' : 'text-[#f2b84b]'}`} />
-                        {feature}
-                      </li>
+                  <div className="mt-3 flex gap-1.5">
+                    {[0,1,2,3,4].map((i) => (
+                      <div key={i} className="h-1.5 flex-1 rounded-full bg-[#007f75]/50" />
                     ))}
-                  </ul>
+                  </div>
+                </div>
+                <Link
+                  to="/register"
+                  className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#f6c453] px-5 py-3 text-sm font-black text-[#10131b] transition hover:bg-[#ffd778]"
+                >
+                  Start building free <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
 
-                  <Link
-                    to="/register"
-                    className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-black transition ${plan.featured ? 'bg-[#10131b] text-white hover:bg-[#263044]' : 'bg-white text-[#10131b] hover:bg-[#f6f1e8]'}`}
-                  >
-                    Choose {plan.name}
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </article>
-              </FadeUp>
-            ))}
-          </div>
+              {/* Feature list */}
+              <div className="relative flex-1">
+                <p className="mb-5 text-xs font-black uppercase tracking-[0.22em] text-[#8dd9ce]">Everything included in beta</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    '5 active projects',
+                    'Preview builder',
+                    'Inspectable code view',
+                    'GitHub & deployment workflow',
+                    'AI code editor agent',
+                    'Supabase-ready data foundation',
+                    'Admin workspace output',
+                    'Community support',
+                  ].map((item) => (
+                    <div key={item} className="flex items-center gap-3">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[#f6c453]">
+                        <Check className="h-3 w-3" strokeWidth={3} />
+                      </span>
+                      <span className="text-sm font-bold text-white/75">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </FadeUp>
         </div>
       </section>
 

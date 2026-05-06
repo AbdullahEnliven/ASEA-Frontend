@@ -1,16 +1,85 @@
-# React + Vite
+# ASEA Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite frontend for the ASEA AI Store Builder platform.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Tech Stack
 
-## React Compiler
+- **React 18** · **Vite** · **Tailwind CSS**
+- **Zustand** for state management
+- **Socket.IO Client** for real-time preview updates
+- **Monaco Editor** for in-app code viewing
+- **Axios** for API requests
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## First-Time Setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure environment
+
+Create a `.env` file in the `Frontend/` directory:
+
+```env
+VITE_API_URL=http://localhost:8000/api/v1
+```
+
+For production, point this to your Railway backend URL.
+
+### 3. Start the development server
+
+```bash
+npm run dev
+```
+
+App runs at **http://localhost:5173**
+
+---
+
+## Build for Production
+
+```bash
+npm run build
+```
+
+Output goes to `dist/`. Deploy the `dist/` folder to Vercel, Netlify, or any static host.
+
+---
+
+## Project Structure
+
+```
+Frontend/
+├── public/              # Static assets
+├── src/
+│   ├── assets/          # Images, fonts
+│   ├── components/      # Shared UI components
+│   ├── pages/           # Page-level components (BuilderPage, Dashboard…)
+│   ├── services/        # Axios API service modules
+│   ├── store/           # Zustand global state stores
+│   ├── hooks/           # Custom React hooks
+│   ├── utils/           # Helper functions
+│   ├── App.jsx          # Root component + routing
+│   └── main.jsx         # Entry point
+├── index.html
+├── vite.config.js
+├── tailwind.config.js
+└── package.json
+```
+
+---
+
+## Key Pages
+
+| Route | Description |
+|---|---|
+| `/` | Landing / login |
+| `/dashboard` | Project list |
+| `/builder/:id` | AI store builder (Preview · Code · Chat) |
+| `/onboarding` | New user setup flow |

@@ -47,8 +47,7 @@ import { ProjectDeployModal, ProjectGithubModal } from '@/components/project/Pro
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
 
-// --- Toolbar ------------------------------------------
-function BuilderToolbar({ setDeployedUrl }) {
+function BuilderToolbar({ setDeployedUrl, onToggleChat, chatOpen }) {
   const {
     deviceMode,
     setDeviceMode,
@@ -152,67 +151,77 @@ function BuilderToolbar({ setDeployedUrl }) {
   };
 
   return (
-    <div className="flex h-16 items-center justify-between gap-4 border-b border-[#d8d0c0] bg-[#fffaf0]/95 px-4 text-[#10131b] shadow-[0_10px_32px_rgba(16,19,27,0.08)] backdrop-blur">
-      <div className="flex min-w-[300px] items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#d8d0c0] bg-[#10131b] text-sm font-black text-[#f6c453] shadow-[0_12px_24px_rgba(16,19,27,0.16)]">
+    <div className="flex h-14 items-center justify-between gap-2 border-b border-[#d8d0c0] bg-[#fffaf0]/95 px-3 text-[#10131b] shadow-[0_10px_32px_rgba(16,19,27,0.08)] backdrop-blur sm:h-16 sm:px-4">
+      {/* Left: logo + project name */}
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        {/* Mobile: chat toggle button */}
+        <button
+          onClick={onToggleChat}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#d8d0c0] bg-[#10131b] text-[#f6c453] lg:hidden"
+          title="Toggle chat"
+        >
+          <MessageSquare size={14} />
+        </button>
+
+        <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#d8d0c0] bg-[#10131b] text-sm font-black text-[#f6c453] shadow-[0_12px_24px_rgba(16,19,27,0.16)] sm:flex">
           A
         </div>
-        <div className="flex flex-col">
-          <div className="flex cursor-pointer items-center gap-2 rounded-lg p-1 -ml-1 transition-colors hover:bg-[#efe6d6]">
-            <span className="max-w-[230px] truncate text-sm font-black leading-tight tracking-[-0.01em]">
+        <div className="flex min-w-0 flex-col">
+          <div className="flex cursor-pointer items-center gap-1.5 rounded-lg p-1 -ml-1 transition-colors hover:bg-[#efe6d6]">
+            <span className="max-w-[120px] truncate text-xs font-black leading-tight tracking-[-0.01em] sm:max-w-[180px] sm:text-sm lg:max-w-[230px]">
               {activeProject?.name || 'Untitled Store'}
             </span>
-            <ChevronDown size={14} className="text-[#8b8174]" />
+            <ChevronDown size={12} className="shrink-0 text-[#8b8174]" />
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#007f75]">Launch workspace</span>
+          <span className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-[#007f75] sm:block">Launch workspace</span>
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center gap-2">
-         {/* Top middle controls akin to Lovable */}
-         <div className="flex rounded-lg border border-[#d8d0c0] bg-[#f6f1e8] p-1 shadow-inner">
-            <button
-              onClick={() => setViewMode('preview')}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-black transition-colors ${viewMode === 'preview' ? 'bg-[#10131b] text-white shadow-sm' : 'text-[#5d6472] hover:bg-white hover:text-[#10131b]'}`}
-            >
-              <Eye size={14} /> Preview
-            </button>
-            <button
-              onClick={() => setViewMode('code')}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-black transition-colors ${viewMode === 'code' ? 'bg-[#10131b] text-white shadow-sm' : 'text-[#5d6472] hover:bg-white hover:text-[#10131b]'}`}
-            >
-              <Code2 size={14} /> Code
-            </button>
-         </div>
+      {/* Center: view/device toggles (hidden on xs) */}
+      <div className="hidden flex-1 items-center justify-center gap-2 sm:flex">
+        <div className="flex rounded-lg border border-[#d8d0c0] bg-[#f6f1e8] p-1 shadow-inner">
+          <button
+            onClick={() => setViewMode('preview')}
+            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-black transition-colors sm:gap-2 sm:px-3 ${viewMode === 'preview' ? 'bg-[#10131b] text-white shadow-sm' : 'text-[#5d6472] hover:bg-white hover:text-[#10131b]'}`}
+          >
+            <Eye size={13} /> <span className="hidden sm:inline">Preview</span>
+          </button>
+          <button
+            onClick={() => setViewMode('code')}
+            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-black transition-colors sm:gap-2 sm:px-3 ${viewMode === 'code' ? 'bg-[#10131b] text-white shadow-sm' : 'text-[#5d6472] hover:bg-white hover:text-[#10131b]'}`}
+          >
+            <Code2 size={13} /> <span className="hidden sm:inline">Code</span>
+          </button>
+        </div>
 
-         {/* Device toggles placed central */}
-         {viewMode === 'preview' && (
-           <div className="ml-3 flex rounded-lg border border-[#d8d0c0] bg-[#f6f1e8] p-1 shadow-inner">
-             {devices.map(({ mode, icon: Icon }) => (
-               <button
-                 key={mode}
-                 onClick={() => setDeviceMode(mode)}
-                 className={`rounded-md p-1.5 px-3 transition-colors ${deviceMode === mode ? 'bg-white text-[#10131b] shadow-sm' : 'text-[#8b8174] hover:bg-white hover:text-[#10131b]'}`}
-                 title={mode}
-               >
-                 <Icon size={14} />
-               </button>
-             ))}
-             <button
-               onClick={() => setEditMode(!editMode)}
-               className={`ml-1 border-l border-[#d8d0c0] p-1.5 px-3 transition-colors ${editMode ? 'text-[#007f75]' : 'text-[#8b8174] hover:text-[#10131b]'}`}
-               title="Visual Edit Mode"
-             >
-               <Pencil size={14} />
-             </button>
-           </div>
-         )}
+        {viewMode === 'preview' && (
+          <div className="hidden items-center rounded-lg border border-[#d8d0c0] bg-[#f6f1e8] p-1 shadow-inner md:flex">
+            {devices.map(({ mode, icon: Icon }) => (
+              <button
+                key={mode}
+                onClick={() => setDeviceMode(mode)}
+                className={`rounded-md p-1.5 px-2 transition-colors md:px-3 ${deviceMode === mode ? 'bg-white text-[#10131b] shadow-sm' : 'text-[#8b8174] hover:bg-white hover:text-[#10131b]'}`}
+                title={mode}
+              >
+                <Icon size={13} />
+              </button>
+            ))}
+            <button
+              onClick={() => setEditMode(!editMode)}
+              className={`ml-1 border-l border-[#d8d0c0] p-1.5 px-2 transition-colors md:px-3 ${editMode ? 'text-[#007f75]' : 'text-[#8b8174] hover:text-[#10131b]'}`}
+              title="Visual Edit Mode"
+            >
+              <Pencil size={13} />
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* Right: actions */}
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
         {!checkingSupabase && !supabaseConnected && (
           <div
-            className="inline-flex items-center gap-2 rounded-lg border border-[#c8931f]/40 bg-[#fff2cb] px-3 py-1.5 text-[11px] font-black text-[#8a5d00]"
+            className="hidden items-center gap-2 rounded-lg border border-[#c8931f]/40 bg-[#fff2cb] px-3 py-1.5 text-[11px] font-black text-[#8a5d00] md:inline-flex"
             title="Backend database is not connected"
           >
             <Database size={13} />
@@ -222,45 +231,26 @@ function BuilderToolbar({ setDeployedUrl }) {
         <button
           onClick={handleDownloadCode}
           disabled={downloading}
-          className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-black text-[#5d6472] transition-colors hover:border-[#d8d0c0] hover:bg-white hover:text-[#10131b] disabled:cursor-not-allowed disabled:opacity-60"
+          className="hidden items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-black text-[#5d6472] transition-colors hover:border-[#d8d0c0] hover:bg-white hover:text-[#10131b] disabled:opacity-60 lg:flex"
         >
-          <Download size={14} />
-          {downloading ? 'Downloading...' : 'Download Code'}
+          <Download size={13} />
+          {downloading ? '…' : 'Download'}
         </button>
-        <button className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-black text-[#5d6472] transition-colors hover:border-[#d8d0c0] hover:bg-white hover:text-[#10131b]">
-          Share
+        <button
+          type="button"
+          onClick={() => setGithubModalOpen(true)}
+          className={`hidden items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-black text-[#5d6472] transition-colors hover:border-[#d8d0c0] hover:bg-white hover:text-[#10131b] ${activeProject?.id ? 'lg:flex' : 'hidden'}`}
+        >
+          <Github size={13} /> <span className="hidden xl:inline">GitHub</span>
         </button>
-        {activeProject?.id ? (
-          <button
-            type="button"
-            onClick={() => setGithubModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 text-xs font-black text-[#5d6472] transition-colors hover:border-[#d8d0c0] hover:bg-white hover:text-[#10131b]"
-          >
-            <Github size={14} />
-            Connect to GitHub
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled
-            className="flex cursor-not-allowed items-center gap-1.5 px-2 text-xs font-black text-[#a9a094]"
-          >
-            GitHub
-          </button>
-        )}
-        <Button variant="secondary" size="sm" className="!border-[#d8d0c0] !bg-white !text-[#10131b] hover:!bg-[#f6f1e8]">
-          <Rocket size={13} className="text-[#007f75]" /> Upgrade
-        </Button>
-        <div className="flex items-center">
+        <div className="flex items-center gap-1.5">
           <Button
             size="sm"
-            className="!border-[#10131b] !bg-[#10131b] !text-white hover:!bg-[#007f75]"
-            onClick={() => {
-              setDeployModalOpen(true);
-            }}
+            className="!border-[#10131b] !bg-[#10131b] !text-white hover:!bg-[#007f75] !px-3 !py-1.5 !text-xs"
+            onClick={() => setDeployModalOpen(true)}
           >
-            <Rocket size={13} />
-            Deploy
+            <Rocket size={12} />
+            <span className="hidden sm:inline">Deploy</span>
           </Button>
         </div>
       </div>
@@ -275,6 +265,91 @@ function BuilderToolbar({ setDeployedUrl }) {
     </div>
   );
 }
+
+
+  const devices = [
+    { mode: 'desktop', icon: Monitor },
+    { mode: 'tablet', icon: Tablet },
+    { mode: 'mobile', icon: Smartphone },
+  ];
+
+  useEffect(() => {
+    const modal = searchParams.get('modal');
+    const deploy = searchParams.get('deploy');
+    const github = searchParams.get('github') || searchParams.get('gh');
+
+    if (modal === 'deploy' || deploy === 'open') {
+      setDeployModalOpen(true);
+    }
+    if (modal === 'github' || github) {
+      setGithubModalOpen(true);
+    }
+  }, [searchParams]);
+
+  const clearActionQuery = useCallback(() => {
+    const actionKeys = ['modal', 'deploy', 'github', 'gh', 'tab'];
+    const hasActionQuery = actionKeys.some((key) => searchParams.has(key));
+    if (!hasActionQuery) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    actionKeys.forEach((key) => nextParams.delete(key));
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const closeDeployModal = useCallback(() => {
+    setDeployModalOpen(false);
+    clearActionQuery();
+  }, [clearActionQuery]);
+
+  const closeGithubModal = useCallback(() => {
+    setGithubModalOpen(false);
+    clearActionQuery();
+  }, [clearActionQuery]);
+
+  useEffect(() => {
+    if (!activeProject?.id) return;
+    let mounted = true;
+    setSupabaseConnected(activeProjectSupabaseConnected);
+    setCheckingSupabase(true);
+    integrationsService
+      .getSupabaseStatus(activeProject.id)
+      .then((res) => {
+        if (!mounted) return;
+        setSupabaseConnected(Boolean(res.data?.connected));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setSupabaseConnected(activeProjectSupabaseConnected);
+      })
+      .finally(() => {
+        if (mounted) setCheckingSupabase(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeProject?.id, activeProjectSupabaseConnected]);
+
+  const handleDownloadCode = async () => {
+    if (!activeProject?.id) return;
+    setDownloading(true);
+    try {
+      const res = await projectsService.download(activeProject.id);
+      const blob = new Blob([res.data], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activeProject.name || 'project'}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Download started');
+    } catch {
+      toast.error('Failed to download code');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
 
 // --- Agent Status Icons --------------------------------
 const STATUS_CONFIG = {
@@ -673,7 +748,7 @@ function ChatSidebar() {
   ];
 
   return (
-    <div className="relative flex h-full w-[370px] shrink-0 flex-col border-r border-[#d8d0c0] bg-[#fffaf0] text-[#10131b]">
+    <div className="relative flex h-full w-full shrink-0 flex-col border-r border-[#d8d0c0] bg-[#fffaf0] text-[#10131b] lg:w-[370px]">
       <div className="border-b border-[#d8d0c0] px-5 py-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
@@ -907,7 +982,6 @@ const getDisplayUrl = (previewUrl, productionUrl) => {
 };
 
 function LivePreview() {
-  const { deviceMode, editMode } = useBuilderStore();
   const activeProject = useProjectsStore((s) => s.activeProject);
   const pollRef = useRef(null);
   const socketRef = useRef(null);
@@ -915,12 +989,11 @@ function LivePreview() {
 
   // preview state: idle | deploying | ready | error
   const [previewStatus, setPreviewStatus] = useState('idle');
-  const [previewUrl, setPreviewUrl] = useState(null);       // actual Vercel preview URL (for external link)
-  const [productionUrl, setProductionUrl] = useState(null); // production URL if deployed
-  const [proxyUrl, setProxyUrl] = useState(null);           // backend proxy URL (iframe src)
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [productionUrl, setProductionUrl] = useState(null);
   const [previewMsg, setPreviewMsg] = useState('');
   const [deployLog, setDeployLog] = useState([]);
-  const [activeEdit, setActiveEdit] = useState(null);
+  const [copied, setCopied] = useState(false);
   const deployLogRef = useRef(null);
   const mountedRef = useRef(false);
 
@@ -937,21 +1010,13 @@ function LivePreview() {
     setPreviewStatus(status);
     setPreviewUrl(data.url || null);
     setProductionUrl(data.production_url || null);
-    // Build proxy URL from project id when ready
-    if (status === 'ready' && data.url) {
-      setProxyUrl(projectsService.getPreviewProxyUrl(activeProject?.id));
-    } else if (status !== 'ready') {
-      setProxyUrl(null);
-    }
     setPreviewMsg(data.message || '');
     if (status === 'deploying' && data.message) {
       const clean = stripAnsi(data.message);
       if (clean) setDeployLog((prev) => [...prev.slice(-200), clean]);
     }
-    if (status === 'ready' || status === 'error') {
-      setDeployLog([]);
-    }
-  }, [activeProject?.id]);
+    if (status === 'ready' || status === 'error') setDeployLog([]);
+  }, []);
 
   // Initial status check
   const fetchStatus = useCallback(async () => {
@@ -969,7 +1034,6 @@ function LivePreview() {
     setPreviewStatus('idle');
     setPreviewUrl(null);
     setProductionUrl(null);
-    setProxyUrl(null);
     setPreviewMsg('');
     setDeployLog([]);
     fetchStatus();
@@ -1029,161 +1093,133 @@ function LivePreview() {
     }
   }, [activeProject?.id, applyStatus]);
 
-  // Edit-mode message listener
-  useEffect(() => {
-    const handleMessage = (e) => {
-      if (e.data?.type === 'asea:click') {
-        const iframeRect = iframeRef.current?.getBoundingClientRect();
-        if (!iframeRect) return;
-        setActiveEdit({
-          editableId: e.data.editableId,
-          text: e.data.text,
-          pendingHtml: e.data.text,
-          absoluteRect: {
-            top: iframeRect.top + e.data.rect.top,
-            left: iframeRect.left + e.data.rect.left,
-            width: e.data.rect.width,
-            height: e.data.rect.height,
-          },
-        });
-      } else if (e.data?.type === 'asea:deselect') {
-        setActiveEdit(null);
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  const handleCopy = () => {
+    if (!previewUrl) return;
+    navigator.clipboard?.writeText(previewUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const isReady = previewStatus === 'ready' && previewUrl;
   const isDeploying = previewStatus === 'deploying';
   const isError = previewStatus === 'error';
   const displayUrl = getDisplayUrl(previewUrl, productionUrl);
-  // The proxy URL needs the bearer token so the backend can authenticate
-  const proxyIframeSrc = proxyUrl
-    ? `${proxyUrl}?token=${encodeURIComponent(token || '')}`
-    : null;
 
   return (
-    <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#f6f1e8] p-4 lg:p-6">
-      <div
-        className="relative flex flex-col overflow-hidden rounded-2xl border border-[#d8d0c0] bg-white shadow-[0_24px_70px_rgba(16,19,27,0.18)] transition-all duration-300"
-        style={{ maxWidth: DEVICE_WIDTHS[deviceMode] || '100%', width: '100%', height: '100%', maxHeight: '100%' }}
-      >
-        {/* Browser bar */}
-        <div className="flex h-12 shrink-0 items-center gap-3 border-b border-[#d8d0c0] bg-[#fffaf0] px-4">
-          <div className="flex max-w-[72px] flex-1 gap-1.5">
-            <div className="h-2.5 w-2.5 rounded-full bg-[#f06f63]" />
-            <div className="h-2.5 w-2.5 rounded-full bg-[#f6c453]" />
-            <div className="h-2.5 w-2.5 rounded-full bg-[#007f75]" />
-          </div>
+    <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-[#f6f1e8] p-8 gap-5">
 
-          {/* Clean URL bar */}
-          <div className="mx-auto flex max-w-md flex-1 items-center gap-2 overflow-hidden rounded-lg border border-[#d8d0c0] bg-white px-3 py-1.5">
-            {isReady && <div className="h-2 w-2 shrink-0 rounded-full bg-[#007f75]" title="Live on Vercel" />}
-            {isDeploying && <Loader2 size={10} className="shrink-0 animate-spin text-[#f6c453]" />}
-            <span className="flex-1 truncate font-mono text-[11px] font-semibold text-[#5d6472]" title={previewUrl || ''}>
-              {isDeploying ? 'Deploying to Vercel…' : (displayUrl || 'Preview not built yet')}
-            </span>
-            {previewUrl && (
-              <a href={previewUrl} target="_blank" rel="noreferrer" className="shrink-0 text-[#8b8174] transition-colors hover:text-[#007f75]" title="Open in new tab">
-                <ExternalLink size={12} />
+      {/* ── Ready ── */}
+      {isReady && (
+        <div className="w-full max-w-md">
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <span className="flex h-2 w-2 animate-pulse rounded-full bg-[#007f75]" />
+            <span className="text-xs font-bold text-[#007f75]">Live on Vercel</span>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-[#d8d0c0] bg-white shadow-[0_8px_40px_rgba(16,19,27,0.12)]">
+            <div className="flex items-center gap-2 border-b border-[#d8d0c0] bg-[#fffaf0] px-4 py-2.5">
+              <div className="flex gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-full bg-[#f06f63]" />
+                <div className="h-2.5 w-2.5 rounded-full bg-[#f6c453]" />
+                <div className="h-2.5 w-2.5 rounded-full bg-[#007f75]" />
+              </div>
+              <div className="flex flex-1 items-center gap-1.5 overflow-hidden rounded-md bg-[#f0ebe2] px-2.5 py-1">
+                <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#007f75]" />
+                <span className="flex-1 truncate font-mono text-[10px] font-semibold text-[#5d6472]">{displayUrl || previewUrl}</span>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-4 px-8 py-7 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#007f75] to-[#004d49] shadow-[0_8px_24px_rgba(0,127,117,0.35)]">
+                <ExternalLink size={24} className="text-white" />
+              </div>
+              <div>
+                <p className="text-base font-black text-[#10131b]">{activeProject?.name || 'Your Store'}</p>
+                <p className="mt-1 text-xs text-[#8b8174]">Deployed and ready to view</p>
+              </div>
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10131b] px-5 py-3 text-sm font-black text-white shadow-[0_8px_24px_rgba(16,19,27,0.2)] transition-all hover:bg-[#007f75] hover:shadow-[0_8px_24px_rgba(0,127,117,0.3)] active:scale-[0.98]"
+              >
+                <ExternalLink size={15} /> Open Preview
               </a>
-            )}
+              <div className="flex w-full items-center gap-2 rounded-lg border border-[#d8d0c0] bg-[#f6f1e8] px-3 py-2">
+                <span className="flex-1 truncate font-mono text-[10px] text-[#8b8174]" title={previewUrl}>{previewUrl}</span>
+                <button onClick={handleCopy} className="shrink-0 rounded px-2 py-0.5 text-[10px] font-black text-[#007f75] hover:bg-[#007f75]/10">
+                  {copied ? '✓ Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
           </div>
-
-          {/* Refresh / rebuild button */}
-          <div className="flex max-w-[72px] flex-1 justify-end">
-            <button
-              onClick={handleTriggerPreview}
-              disabled={isDeploying}
-              className="rounded-lg border border-transparent p-1.5 transition-colors hover:border-[#d8d0c0] hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-              title={isReady ? 'Rebuild preview' : 'Build Vercel preview'}
-            >
-              <RefreshCw size={14} className={`text-[#8b8174] ${isDeploying ? 'animate-spin' : ''}`} />
+          <div className="mt-4 flex items-center justify-center gap-3 text-xs text-[#8b8174]">
+            <span>Code changed?</span>
+            <button onClick={handleTriggerPreview} className="flex items-center gap-1.5 font-bold text-[#10131b] hover:text-[#007f75]">
+              <RefreshCw size={11} /> Rebuild Preview
             </button>
           </div>
         </div>
+      )}
 
-        {/* Content */}
-        {isReady && proxyIframeSrc ? (
-          // ── Vercel preview via backend proxy (no X-Frame-Options block) ──
-          <div className="relative min-h-0 flex-1">
-            <iframe
-              src={proxyIframeSrc}
-              title="Store Preview"
-              className="absolute inset-0 h-full w-full border-0"
-              allow="fullscreen"
-            />
+      {/* ── Deploying ── */}
+      {isDeploying && (
+        <div className="flex w-full max-w-lg flex-col items-center gap-4">
+          <div className="relative flex h-14 w-14 items-center justify-center">
+            <div className="absolute inset-0 animate-spin rounded-full border-4 border-[#007f75]/20 border-t-[#007f75]" />
+            <Rocket size={22} className="text-[#007f75]" />
           </div>
-        ) : isDeploying ? (
-          // ── Deploying state ───────────────────────────────────────────
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 overflow-hidden p-6">
-            <div className="flex flex-col items-center gap-3">
-              <div className="relative flex h-14 w-14 items-center justify-center">
-                <div className="absolute inset-0 animate-spin rounded-full border-4 border-[#007f75]/20 border-t-[#007f75]" />
-                <Rocket size={22} className="text-[#007f75]" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-black text-[#10131b]">Deploying to Vercel</p>
-                <p className="mt-1 text-xs text-[#8b8174]">~1–2 min first build · subsequent builds use cache</p>
-              </div>
-            </div>
-            {deployLog.length > 0 && (
-              <div
-                ref={deployLogRef}
-                className="w-full max-w-xl max-h-56 overflow-y-auto rounded-xl border border-[#d8d0c0] bg-[#0f172a] px-4 py-3 font-mono text-[10px] text-[#94a3b8] shadow-inner"
-              >
-                {deployLog.map((line, i) => (
-                  <div key={i} className="leading-relaxed">{line}</div>
-                ))}
-                <div className="mt-1 animate-pulse text-[#007f75]">▌</div>
-              </div>
-            )}
+          <div className="text-center">
+            <p className="text-sm font-black text-[#10131b]">Deploying to Vercel</p>
+            <p className="mt-1 text-xs text-[#8b8174]">~1–2 min first build · cached after that</p>
           </div>
-        ) : isError ? (
-          // ── Error state ───────────────────────────────────────────────
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-red-200 bg-red-50">
-              <span className="text-2xl">⚠️</span>
+          {deployLog.length > 0 && (
+            <div ref={deployLogRef} className="w-full max-h-52 overflow-y-auto rounded-xl border border-[#d8d0c0] bg-[#0f172a] px-4 py-3 font-mono text-[10px] text-[#94a3b8] shadow-inner">
+              {deployLog.map((line, i) => <div key={i} className="leading-relaxed">{line}</div>)}
+              <div className="mt-1 animate-pulse text-[#007f75]">▌</div>
             </div>
-            <div>
-              <p className="text-sm font-black text-[#10131b]">Preview deploy failed</p>
-              <p className="mt-1 max-w-xs text-xs leading-relaxed text-[#8b8174]">{previewMsg}</p>
-            </div>
-            <button
-              onClick={handleTriggerPreview}
-              className="flex items-center gap-2 rounded-xl bg-[#10131b] px-4 py-2 text-xs font-black text-white transition-colors hover:bg-[#007f75]"
-            >
-              <RefreshCw size={13} /> Try Again
-            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── Error ── */}
+      {isError && (
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-red-200 bg-red-50"><span className="text-2xl">⚠️</span></div>
+          <div>
+            <p className="text-sm font-black text-[#10131b]">Deploy failed</p>
+            <p className="mt-1 max-w-xs text-xs text-[#8b8174]">{previewMsg}</p>
           </div>
-        ) : (
-          // ── Idle / not built yet ──────────────────────────────────────
-          <div className="flex flex-1 flex-col items-center justify-center gap-5 p-6 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#d8d0c0] bg-[#f6f1e8] shadow-inner">
-              <Rocket size={28} className="text-[#007f75]" />
-            </div>
-            <div>
-              <p className="text-base font-black text-[#10131b]">Preview your store</p>
-              <p className="mt-2 max-w-xs text-xs leading-relaxed text-[#8b8174]">
-                {previewMsg || 'Build a Vercel preview — same deployment doubles as your production URL.'}
-              </p>
-            </div>
-            <button
-              onClick={handleTriggerPreview}
-              id="trigger-preview-btn"
-              className="flex items-center gap-2 rounded-xl bg-[#10131b] px-5 py-2.5 text-sm font-black text-white shadow-[0_8px_24px_rgba(16,19,27,0.2)] transition-all hover:bg-[#007f75] hover:shadow-[0_8px_24px_rgba(0,127,117,0.3)] active:scale-95"
-            >
-              <Rocket size={15} /> Build Preview on Vercel
-            </button>
-            <p className="text-[10px] text-[#a9a094]">Powered by Vercel · Works on Railway · ~1 min first build</p>
+          <button onClick={handleTriggerPreview} className="flex items-center gap-2 rounded-xl bg-[#10131b] px-4 py-2 text-xs font-black text-white hover:bg-[#007f75]">
+            <RefreshCw size={13} /> Try Again
+          </button>
+        </div>
+      )}
+
+      {/* ── Idle ── */}
+      {!isReady && !isDeploying && !isError && (
+        <div className="flex flex-col items-center gap-5 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#d8d0c0] bg-[#f6f1e8] shadow-inner">
+            <Rocket size={28} className="text-[#007f75]" />
           </div>
-        )}
-      </div>
+          <div>
+            <p className="text-base font-black text-[#10131b]">Preview your store</p>
+            <p className="mt-2 max-w-xs text-xs leading-relaxed text-[#8b8174]">
+              {previewMsg || 'Deploy to Vercel to get a live link. Same URL works for production — no double build.'}
+            </p>
+          </div>
+          <button
+            onClick={handleTriggerPreview}
+            id="trigger-preview-btn"
+            className="flex items-center gap-2 rounded-xl bg-[#10131b] px-5 py-2.5 text-sm font-black text-white shadow-[0_8px_24px_rgba(16,19,27,0.2)] transition-all hover:bg-[#007f75] hover:shadow-[0_8px_24px_rgba(0,127,117,0.3)] active:scale-95"
+          >
+            <Rocket size={15} /> Build Preview on Vercel
+          </button>
+          <p className="text-[10px] text-[#a9a094]">Powered by Vercel · ~1 min first build</p>
+        </div>
+      )}
+
     </div>
   );
 }
-
 
 const RotateCw = ({size, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinelinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
 
@@ -1476,24 +1512,31 @@ function CodeViewerPane() {
 // --- Main Builder Page --------------------------------
 export default function BuilderPage() {
   const { id } = useParams();
-  const { viewMode, reset } = useBuilderStore();
+  const { viewMode, setViewMode, reset } = useBuilderStore();
   const { setActiveProject } = useProjectsStore();
   const [deployedUrl, setDeployedUrl] = useState('');
+  const [chatOpen, setChatOpen] = useState(false);
+
+  // Breakpoint: treat >=1024 as desktop (always show chat sidebar)
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const handler = (e) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
-    // Load project data
     projectsService
       .get(id)
       .then((res) => setActiveProject(res.data))
       .catch(() => {});
-
     return () => reset();
   }, [id, setActiveProject, reset]);
 
   useEffect(() => {
     if (!id) return;
     let mounted = true;
-
     integrationsService
       .getVercelStatus(id)
       .then((res) => {
@@ -1501,23 +1544,88 @@ export default function BuilderPage() {
         const persistedUrl = res.data?.production_url || res.data?.preview_url || '';
         setDeployedUrl(persistedUrl);
       })
-      .catch(() => {
-        if (!mounted) return;
-        setDeployedUrl('');
-      });
-
-    return () => {
-      mounted = false;
-    };
+      .catch(() => { if (!mounted) return; setDeployedUrl(''); });
+    return () => { mounted = false; };
   }, [id]);
 
+  // Mobile tab: 'chat' | 'preview' | 'code'
+  const [mobileTab, setMobileTab] = useState('preview');
+
+  // Sync viewMode store with mobile tab
+  useEffect(() => {
+    if (!isDesktop) {
+      if (mobileTab === 'preview') setViewMode('preview');
+      if (mobileTab === 'code') setViewMode('code');
+    }
+  }, [mobileTab, isDesktop, setViewMode]);
+
+  const showChat = isDesktop || mobileTab === 'chat';
+  const showMain = isDesktop || mobileTab !== 'chat';
+
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#f6f1e8] text-[#10131b]">
-      <BuilderToolbar setDeployedUrl={setDeployedUrl} />
-      <div className="flex h-[calc(100vh-64px)] flex-1 overflow-hidden">
-        <ChatSidebar />
-        {viewMode === 'preview' ? <LivePreview /> : <CodeViewerPane />}
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#f6f1e8] text-[#10131b]">
+      <BuilderToolbar
+        setDeployedUrl={setDeployedUrl}
+        onToggleChat={() => setMobileTab((t) => t === 'chat' ? 'preview' : 'chat')}
+        chatOpen={mobileTab === 'chat'}
+      />
+
+      {/* Body */}
+      <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100dvh - 56px)' }}>
+
+        {/* Chat sidebar — desktop: always visible. Mobile: shown when mobileTab==='chat' */}
+        <div
+          className={`flex-col overflow-hidden transition-all duration-200 ${
+            isDesktop
+              ? 'flex w-[340px] shrink-0 xl:w-[370px]'
+              : showChat
+              ? 'flex w-full'
+              : 'hidden'
+          }`}
+        >
+          <ChatSidebar />
+        </div>
+
+        {/* Preview / Code — hidden on mobile when chat tab is active */}
+        {showMain && (
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            {viewMode === 'preview' ? <LivePreview /> : <CodeViewerPane />}
+          </div>
+        )}
       </div>
+
+      {/* Mobile bottom tab bar */}
+      {!isDesktop && (
+        <div className="flex h-14 shrink-0 items-center justify-around border-t border-[#d8d0c0] bg-[#fffaf0] px-2">
+          <button
+            onClick={() => setMobileTab('chat')}
+            className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition-colors ${
+              mobileTab === 'chat' ? 'text-[#007f75]' : 'text-[#8b8174]'
+            }`}
+          >
+            <MessageSquare size={18} />
+            Chat
+          </button>
+          <button
+            onClick={() => { setMobileTab('preview'); setViewMode('preview'); }}
+            className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition-colors ${
+              mobileTab === 'preview' ? 'text-[#007f75]' : 'text-[#8b8174]'
+            }`}
+          >
+            <Eye size={18} />
+            Preview
+          </button>
+          <button
+            onClick={() => { setMobileTab('code'); setViewMode('code'); }}
+            className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition-colors ${
+              mobileTab === 'code' ? 'text-[#007f75]' : 'text-[#8b8174]'
+            }`}
+          >
+            <Code2 size={18} />
+            Code
+          </button>
+        </div>
+      )}
     </div>
   );
 }
