@@ -90,7 +90,7 @@ function RequirementStep({ data, onChange, onGenerate }) {
       animate={{ opacity: 1, y: 0 }}
       className="mx-auto max-w-7xl"
     >
-      <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <section className="rounded-lg border border-[#d8d0c0] bg-white p-6 shadow-[0_18px_55px_rgba(22,24,31,0.06)] lg:p-8">
           <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
@@ -301,7 +301,7 @@ function GenerationStep({ projectId }) {
             <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-[#0f766e]">
               Generation in progress
             </p>
-            <h2 className="max-w-3xl text-4xl font-black tracking-tight text-[#10131b] sm:text-5xl">
+            <h2 className="max-w-3xl text-3xl font-black tracking-tight text-[#10131b] sm:text-4xl lg:text-5xl">
               ASEA agents are assembling your commerce project.
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-7 text-[#5c6270]">

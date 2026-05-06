@@ -362,11 +362,11 @@ export default function LandingPage() {
               Commerce OS for AI builders
             </div>
 
-            <h1 className="max-w-4xl text-5xl font-black leading-[0.96] tracking-tight text-[#10131b] sm:text-7xl lg:text-8xl">
+            <h1 className="max-w-4xl text-4xl font-black leading-[0.96] tracking-tight text-[#10131b] sm:text-6xl lg:text-8xl">
               Turn a store idea into a real launch system.
             </h1>
 
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-[#4f5664] sm:text-xl">
+            <p className="mt-6 max-w-2xl text-base leading-7 text-[#4f5664] sm:mt-7 sm:text-xl sm:leading-8">
               ASEA builds the storefront, database, admin tools, and deployment path in one calm workspace so teams can move from concept to owned code without the usual rebuild cycle.
             </p>
 
@@ -392,11 +392,11 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="grid w-full max-w-lg grid-cols-3 overflow-hidden rounded-lg border border-[#cfc8ba] bg-[#fffaf0]/88 shadow-[0_22px_70px_rgba(35,38,47,0.14)] backdrop-blur lg:mb-6"
+            className="grid w-full max-w-lg grid-cols-3 overflow-hidden rounded-lg border border-[#cfc8ba] bg-[#fffaf0]/88 shadow-[0_22px_70px_rgba(35,38,47,0.14)] backdrop-blur sm:max-w-sm lg:mb-6 lg:max-w-lg"
           >
             {heroStats.map((stat) => (
-              <div key={stat.label} className="border-r border-[#dfd8cb] p-4 last:border-r-0">
-                <p className="text-3xl font-black tracking-tight text-[#10131b]">{stat.value}</p>
+              <div key={stat.label} className="border-r border-[#dfd8cb] p-3 last:border-r-0 sm:p-4">
+                <p className="text-2xl font-black tracking-tight text-[#10131b] sm:text-3xl">{stat.value}</p>
                 <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#626a78]">{stat.label}</p>
               </div>
             ))}
@@ -574,9 +574,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-12 px-5 py-24 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:py-32">
+      <section className="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:grid lg:grid-cols-[0.8fr_1.2fr] lg:gap-12 lg:py-32">
         <FadeUp>
-          <div>
+          <div className="mb-10 lg:mb-0">
             <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-[#ba4d41]">Questions</p>
             <h2 className="text-4xl font-black tracking-tight text-[#10131b] sm:text-5xl">
               Short answers before the first build.
@@ -598,11 +598,11 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl rounded-lg bg-[#0f766e] px-6 py-12 text-white shadow-[0_24px_70px_rgba(15,118,110,0.24)] sm:px-10 lg:flex lg:items-center lg:justify-between lg:gap-12">
             <div className="max-w-2xl">
               <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-white/65">Ready room</p>
-              <h2 className="text-4xl font-black tracking-tight sm:text-5xl">Give ASEA the brief. Keep the code.</h2>
+              <h2 className="text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">Give ASEA the brief. Keep the code.</h2>
             </div>
             <Link
               to="/register"
-              className="mt-8 inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-4 text-sm font-black text-[#0f3d38] transition hover:-translate-y-0.5 hover:bg-[#fff4d8] lg:mt-0"
+              className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-6 py-4 text-sm font-black text-[#0f3d38] transition hover:-translate-y-0.5 hover:bg-[#fff4d8] sm:w-auto lg:mt-0"
             >
               Generate a store
               <Boxes className="h-4 w-4" />

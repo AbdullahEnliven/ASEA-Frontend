@@ -74,7 +74,7 @@ export default function PricingPage() {
             Beta Access — No Payment Required
           </div>
 
-          <h1 className="mx-auto max-w-4xl text-5xl font-black leading-[0.96] sm:text-6xl lg:text-7xl">
+          <h1 className="mx-auto max-w-4xl text-3xl font-black leading-[0.96] sm:text-5xl lg:text-7xl">
             Everything free,
             <br />
             <span className="relative">
@@ -93,13 +93,13 @@ export default function PricingPage() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               to="/register"
-              className="inline-flex items-center gap-2 rounded-lg bg-[#10131b] px-7 py-4 text-sm font-black text-white transition hover:bg-[#253044]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#10131b] px-7 py-4 text-sm font-black text-white transition hover:bg-[#253044] sm:w-auto"
             >
               Start building for free <ArrowRight size={16} />
             </Link>
             <Link
               to="/features"
-              className="inline-flex items-center gap-2 rounded-lg border border-[#d8d0c0] bg-white px-7 py-4 text-sm font-black text-[#10131b] transition hover:border-[#10131b]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#d8d0c0] bg-white px-7 py-4 text-sm font-black text-[#10131b] transition hover:border-[#10131b] sm:w-auto"
             >
               See what ASEA can do
             </Link>

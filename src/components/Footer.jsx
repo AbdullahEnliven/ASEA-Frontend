@@ -34,8 +34,8 @@ export default function Footer() {
   return (
     <footer className="border-t border-[#d9d1c1] bg-[#fffaf0] px-5 py-14 text-[#10131b] sm:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-12 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">
-          <div>
+        <div className="grid grid-cols-2 gap-10 sm:gap-12 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">
+          <div className="col-span-2 lg:col-span-1">
             <Link to="/" className="mb-6 inline-flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#10131b] text-white">
                 <Layers3 className="h-5 w-5" />

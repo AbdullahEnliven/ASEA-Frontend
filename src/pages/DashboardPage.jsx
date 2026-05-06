@@ -341,7 +341,7 @@ export default function DashboardPage() {
         <div className="grid gap-8 p-6 lg:grid-cols-[1fr_22rem] lg:p-8">
           <div>
             <p className="mb-4 text-xs font-black uppercase tracking-[0.22em] text-[#0f766e]">Dashboard</p>
-            <h1 className="max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">
+            <h1 className="max-w-3xl text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
               Manage the stores ASEA helped you build.
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-[#5c6270]">
@@ -476,7 +476,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative w-full sm:w-72">
+            <div className="relative w-full">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b8174]" />
               <input
                 value={filters.query}
